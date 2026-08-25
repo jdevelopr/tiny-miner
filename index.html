@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiny Miner</title>
+<style>
+  @font-face{
+    font-family:'TinyMiner';
+    src:url(data:font/woff;base64,d09GRgABAAAAAArsAAoAAAAAOmQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABPUy8yAAABZAAAAC4AAABgSUFJT2NtYXAAAAGkAAAAgAAAAJ4GLwazZ2x5ZgAAAtwAAAXxAAAxmKW6UWxoZWFkAAAA9AAAADYAAAA2LnBwaGhoZWEAAAEsAAAAHwAAACQFFgHEaG10eAAAAZQAAAANAAAAtgJYAABsb2NhAAACJAAAALYAAAC2ZcFZk21heHAAAAFMAAAAGAAAACAAbwBSbmFtZQAACNAAAAC6AAABkqdfghBwb3N0AAAJjAAAAV4AAAOe4RyMRgABAAAAAQAAci0B4V8PPPUAAQPoAAAAAOazlsoAAAAA5rOWygAA/zgB9AK8AAAAAwACAAAAAAAAeJxjYGRgYFb4z8bAwBTBwMCQwviFASiCAhgBRlkC3wB4nGNgZGBgiGIIYBBhAAEmBjQAABN7AMJ4nGNgZopgnMDAykAMYETmuAQ4BwEpBYYaZoX/bAwMzAoMv9DUKzAwAADH4wUfAAB4nGOKYBiCAABAWgBbAAAAeJw1zMlpAmAUReHPAddBLMAK1JUQN85xjLMoiohtiBXYUlYWYh0ufx8heXDehXPhIotcUIqf+c28e2TRR5isqk9NBydnV7eUoiuraWg7hrv8uQLpEbzST3rGUjFcJaj7v4yevZm5haWdlbVvo9gZavnS0TUxNtW3MbB9AwSIGNgAAAAAAAAAZwDVASEBhwHmAjMCkwL2A0gDiQPcBBsEgwTqBUgFnQX/BmQGtQb0B04HnggGCFUIkwjkCTEJiwm/ChsKaAqpCw0LXwuUC9YMHQxYDK0M9A07DZYN8Q4nDm0OrQ70Dy0PdQ+tEAkQTxC5EPQRQhGUEeQSQBKVEtQTNROKE6QTyRP4FDIUWhSRFL8U6hUIFTIVaBWUFcAWHBaJFuUXORePF7wX6BgeGFQYcRiDGJ8YzAAAeJy1WktuG0cQLSqRGcVKHIYhsvAiMLLwIgYCgSAcwAsvssgii2x9gDkAj6ID5Cg5QB9AR9HaTn+nq2uququG0tjUEEOq+9X/VbXgR/DX5vHqP/gKtvASXsEefobX8Av8Cm/hN/gdjvAePsBH+BP+Atifjoe7/Lr2rzfkfkde3HfCffLX5/O0eTd9vs0/46Pb5pH/efVpUl8AP5mk+Rv+AdgpEFs+5yVbPrEIFoX7TiGbaJ8telHUDb50hfdnFUgAowdp9C3dB3pe/jTq+VJZ7oi2Nc+LLFX5SfXpMqH/XoV+NWoepQYh7Ax67frwURmJGSD26cY1dM69Dv9O6cHd/Mj68kX5ETxqnRRDDykvTqKE82HeNr/V4QSPqo+x8Q4OzxHhcn5JV3Cc/dsApo8ELFH0huyJ994yz5FlXfLBAMilu8sOqwqosZ52jH66+QdfIx2tyJM4AkoUF90cmfedqIjmpLeLeMMTyNOTBcvLyeOW4rhpvTg/qKUZ8rlRHoto+1XYkmovyFEa3oYrGcvRJjVWeJqaRu/Ua7CHibqeXSblWkNJeAbuRj9nc6Csf2MinCVR+82ewRh84oCeHU58fSuaLpeFYeoytqbqVi72gNYfpGxTXGmzwCIb9Nm4LRuAruOx4D0W7Y0QuufqfLRxT2MfR5ucAdqbuQqu1nfRK+Y8AptN2o2U52wpbwDfdtENcc2RQ7Gkq4fgQuZsZGEu/xvjwggza9089lkrzn4HIWNL3XYukEh50+Z+jMzARnaCdiwzgQz0olkA3ETM96w2F7W8ID4QJLWNl9Rk0c3mxNckrW4ihsaCNOkZWNoKbxt1wYz2aG7TeJu6f8ScBPsbjlBX+UhtJRW90Zc/hrphJ6oWe1JfKHpiLZstP1YgEsTQB1tjtnDAxs4rGjgfp1OIUxZj1Oz2tLQqRloTbXwTNnXsTi+jVfmdol9tOrtRNu/FQ7s0kwl294zhNmWljkUaa2imElny5SxipP5Qj2Xdv61+Pap+zarFBvKur1SZB1ViTW9O32erxBtHrjRxlK3VQ2qehWdcbLz0MWnQaHvUQe8/TjSREyhzpElHXOck6mwyJkUT6kuyOp61C9ncgvqmY/moXdxf4Igh05I6pRLpTOkguhpidUO7717nrSMDOiZAsxHOUDhvhhUrBVANkpXxbzrzkjvWUcgNvcDcM6fuSfaFlfL3crPY82pyjloDUjfL9q+y/MYcZ/GDBffr+IU5y6liWNPnsv0t7m6HIex3tp3nizVMOnHA+a5b31yTfty6c8QolII3STxSYK4a3qRk85z+tLOLpKvWxCoW/yTTlVI5tifZmjMs+zBSqT/cBXDTbwl96gjiQDe1A2eVXat9zSfUXA9OLTvUZzsLX3Gwbp/bY2YyYlg1VlJTk4CeSYp8zvm91P3kRbWB8sSnTZrPWFWt1F0UYdUJjZYvX/dQTzrGNiP9Ombod+BmpPAe7Zf3aTp1eBGrPf6dIN3i95D9XU1HzUrf+N099KtPCz01PTV3L6uG/5vHecm6SZyif/mXXX3RtUv3LdkpSMHuVvZ84bXi9Uks3/BvMnWbL2oxh5icPPUZVbDqJcUGvGfE3bbCbnOu516R2tRCyC/fWXt3qjNl/EK5Q171OmjbM7h7tCqbneL3oxYaRI5hf1Gv0uy2nDyH25LUxZMbbk10csOtyqJlWlDkL0WjS3a1sBbWaqy+ORgFpW5jTmAstWcs1GT5tLJkq5DXffQI8cjUbcpeJW3Rz/Fsa07m9D0K4+616i9t96cxH9J+Nk/pHnhB5oGm/e9szZWWYyJH8pzOE/Dz7HjRs8uMIbm55hh6xm1m0bQHojmM9kwpBucpUA2ZdDyiPalcxfiORK8FX+dvZcrJTcP6bX8jk6NekU1wRsnZJF1y5hdWxvlEYI29hHITa23nRKTHSjNXbiq4rKl8+kLrumGvZrmuC4Wa5nnLo3cdVNPw1PCOWzP85lWsPQXlHLGoLENgfKFeIkkW2Sp8kSYU/12O2byWuQ3lN5LM/wPw7Xz/AAAAeJx9jD8KwnAMhb/+FUEEB50cioODqNhdcOkBSvECUn4UoWApFJw8hrMHcvJERhuxVTGB8OXl5QE9zlg8yqL/nI+y6chWs8OAobLLiKmyJ5e1si+OjeyW2xVlzFbZlpRC2WHCSdllzkXZk++rss+MW2RMkR5KE8T7o8kTk1X5rnyJT20RLldtV6C2xqF2qk6EkS5IOVAKBcTsOQrlJDIzKqEd3863b0HIktXfrOAj7fdHM7PlvwNOk0RdAAB4nF2R2VJTQQAF00ENqCgiiCsIqMgihpnMDBEVkgDKrrig/IEvvvn/WkVPFeV9OXVvTXWfc6fRbFx+aPz/nP/72GSIK1zlGi2GGeE6N7jJKLe4zRh3GOcuE0xyjynu84CHPOIxT5hmhqfMMsc8z3jOCxZ4ySJLLLPCK1Z5TZs1ApEOiUxhnS5v2OAt73jPJlv06DNgmx12+cBH9tjngEOOOOaET3zmlC985RvfOeMHPzlv/fn9q90O7YvsrJnBjGbHTGY2i7luds2e2TcH5ra5Y+5eZNKf9Cf9SX/Sn/Qn/Ul/0p/0J/1ZXpaX5WV5WV6Wl+VleVlerjz3ZPdk92T3ZPcU9xT9RX/RX/QX/UV/0V/0F/1Ff5Qb5Ua5UW6UG+VGuVFulBvlBnsH98TqcWeoHneFel+eD+4Pno++x8qrfLnBnsGewZ7BnsF+od6j3CQ31R7uCfW/Dv4CWvPOOwAA) format('woff');
+    font-display:block;
+  }
+  :root{
+    --void:#0b0a10; --panel:#15131d; --line:#2b2740;
+    --amber:#f2b134; --ink:#cfc9e6; --dim:#7d7796;
+    --good:#5fd08a; --bad:#e2564a; --heat:#ff7a3d;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh;
+    background:radial-gradient(120% 80% at 50% 0%, #1a1726 0%, var(--void) 70%);
+    color:var(--ink);
+    font-family:'TinyMiner',ui-monospace,monospace;
+    -webkit-font-smoothing:none;
+    font-smooth:never;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:12px; padding:20px;
+  }
+  .stage{ position:relative; width:min(94vw,760px); }
+  .shell{ border:2px solid var(--line); background:var(--panel); padding:10px 10px 0; }
+  canvas#game{ display:block; image-rendering:pixelated; width:100%; aspect-ratio:400/320; background:#000; }
+
+  .hud{ display:flex; align-items:center; gap:16px; padding:9px 4px; font-size:10px; }
+  .stat{ display:flex; flex-direction:column; gap:3px; line-height:1; }
+  .stat span{ font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+  .stat b{ font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .clock b{ color:var(--amber) } .clock.low b{ color:var(--bad) } .cash b{ color:var(--good) }
+  .gauge{ width:74px; height:7px; background:#22222c; margin-top:3px; }
+  .cells{ display:flex; gap:2px; margin-top:3px; height:14px; align-items:flex-end }
+  .cells i{ width:5px; height:14px; background:#2b2740; display:block }
+  .cells i.on{ background:#5fd08a }
+  .cells i.spent{ background:#2b2740; box-shadow:inset 0 -2px 0 #3a3350 }
+  .stat[hidden]{ display:none }
+  .gauge i{ display:block; height:100%; width:0; background:var(--heat); }
+  .flash{ margin-left:auto; color:var(--amber); font-size:10px; opacity:0; transition:opacity .2s; text-align:right }
+  .flash.on{ opacity:1 }
+  .ping{ background:#1d2a33; border:1px solid #2f5560; color:#7fe6ff; font:inherit;
+    font-size:10px; letter-spacing:1px; padding:6px 10px; cursor:pointer; margin-left:10px }
+  .ping:hover:not(:disabled){ border-color:#7fe6ff; background:#25404d }
+  .ping:disabled{ opacity:.4; cursor:not-allowed }
+  .ping[hidden]{ display:none }
+  .timebar{ height:4px; background:#22222c }
+  .timebar i{ display:block; height:100%; background:var(--amber); width:100% }
+  .timebar i.low{ background:var(--bad) }
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; font-size:10px; color:var(--dim);
+           width:min(94vw,760px); justify-content:space-between }
+
+  .title{ position:absolute; inset:0; display:none; background:#100e18; border:2px solid var(--line);
+    flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center }
+  .title.on{ display:flex }
+  .title h1{ margin:0; font-size:30px; letter-spacing:1px; font-weight:600; color:var(--amber) }
+  .title p{ margin:0; font-size:10px; color:var(--dim); line-height:1.6 }
+  .title .keys{ font-size:10px; color:#4f4a63; letter-spacing:1px }
+
+
+  /* workshop */
+  .workshop{ position:absolute; inset:0; display:none; background:#100e18; border:2px solid var(--line);
+    flex-direction:column; padding:16px 18px; gap:12px; overflow:auto }
+  .workshop.on{ display:flex }
+  .wtop{ display:flex; align-items:flex-end; gap:16px; border-bottom:1px solid var(--line); padding-bottom:10px }
+  .wtop h1{ margin:0; font-size:20px; letter-spacing:1px; font-weight:600 }
+  .wtop p{ margin:2px 0 0; font-size:10px; color:var(--dim); line-height:1.6 }
+  .wbank{ margin-left:auto; text-align:right }
+  .wbank span{ font-size:10px; color:var(--dim); letter-spacing:1px; display:block }
+  .wbank b{ font-size:30px; color:var(--good); font-variant-numeric:tabular-nums }
+
+  .wbody{ display:flex; gap:16px; align-items:flex-start }
+  canvas#bay{ image-rendering:pixelated; width:104px; height:104px; background:#181425;
+    border:1px solid var(--line); flex:0 0 auto }
+  .wcols{ display:flex; flex-direction:column; gap:12px; flex:1 }
+  .sec h2{ margin:0 0 6px; font-size:10px; font-weight:400; letter-spacing:1px; color:var(--dim);
+    border-bottom:1px solid var(--line); padding-bottom:5px }
+  .sec h2 em{ font-style:normal; color:#4f4a63; margin-left:6px }
+  .trees{ display:grid; grid-template-columns:repeat(auto-fit,minmax(212px,1fr)); gap:8px; }
+
+  .tree{ background:#1b1826; border:1px solid var(--line); padding:9px 10px; display:flex;
+    flex-direction:column; gap:6px }
+  .tree.max{ border-color:#33405a }
+  .trow{ display:flex; align-items:center; gap:8px }
+  .tree h3{ margin:0; font-size:10px; letter-spacing:1px; flex:1 }
+  .pips{ display:flex; gap:3px }
+  .pip{ width:9px; height:9px; background:#2b2740 }
+  .pip.on{ background:var(--amber) }
+  .tree p{ margin:0; font-size:10px; color:var(--dim); line-height:1.6; min-height:2.4em }
+  .buy{ background:#241f33; border:1px solid var(--line); color:var(--amber); font:inherit;
+    font-size:10px; padding:5px 8px; cursor:pointer; letter-spacing:1px }
+  .buy:hover:not(:disabled){ border-color:var(--amber); background:#2c2540 }
+  .buy:disabled{ color:var(--dim); cursor:not-allowed; opacity:.55 }
+  .buy:focus-visible{ outline:2px solid var(--amber); outline-offset:1px }
+
+  .wfoot{ display:flex; align-items:center; gap:14px; border-top:1px solid var(--line); padding-top:11px }
+  .wfoot .note{ font-size:10px; color:var(--dim); line-height:1.6 }
+  .go{ margin-left:auto; background:var(--amber); color:#15131d; border:0; padding:11px 26px;
+    font:inherit; font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer }
+  .go:hover{ background:#ffc75a }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <span>TINY MINER -- one minute down, then back to the bay</span>
+  <span>WASD / arrows to drill</span>
+</div>
+
+<div class="stage">
+  <div class="shell">
+    <canvas id="game" width="400" height="320"></canvas>
+    <div class="hud">
+      <div class="stat clock" id="clockBox"><span>Time</span><b id="clock">60.0</b></div>
+      <div class="stat"><span>Depth</span><b id="depth">0m</b></div>
+      <div class="stat"><span>Core temp</span><div class="gauge"><i id="heatbar"></i></div></div>
+      <div class="stat" id="fuelBox" hidden><span>Cells</span><div class="cells" id="cells"></div></div>
+      <div class="stat"><span>This run</span><b id="run">$0</b></div>
+      <div class="stat cash"><span>Bank</span><b id="bank">$0</b></div>
+      <div class="flash" id="flash"></div>
+      <button class="ping" id="pingBtn" hidden>PING</button>
+    </div>
+    <div class="timebar"><i id="timebar"></i></div>
+  </div>
+
+  <div class="title on" id="title">
+    <h1>TINY MINER</h1>
+    <p>Sixty seconds underground. Ore hides inside the rock and only shows<br>
+       once you cut alongside it. Lava cannot be drilled -- open a tile beside<br>
+       a pool and it floods in. Whatever you haul up pays for the next rig.</p>
+    <button class="go" id="playBtn">START MINING</button>
+    <span class="keys">WASD or arrow keys to drill</span>
+  </div>
+
+  <div class="workshop" id="workshop">
+    <div class="wtop">
+      <div>
+        <h1 id="wTitle">WORKSHOP</h1>
+        <p id="wSub">Ore hides inside rock and only shows once you cut alongside it.<br>Lava cannot be drilled -- and it flows into anything you open beside it.</p>
+      </div>
+      <div class="wbank"><span>BANK</span><b id="wBank">$0</b></div>
+    </div>
+    <div class="wbody">
+      <canvas id="bay" width="52" height="52"></canvas>
+      <div class="wcols">
+        <div class="sec"><h2>UPGRADES</h2><div class="trees" id="trees"></div></div>
+        <div class="sec"><h2>TOOLS <em>one-time unlocks, run on cells</em></h2>
+          <div class="trees" id="tools"></div></div>
+      </div>
+    </div>
+    <div class="wfoot">
+      <div class="note" id="wNote"></div>
+      <button class="go" id="startBtn">DEPLOY</button>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <span>Tougher rock hosts richer ore -- drill power decides what you can even scratch.</span>
+  <span>Below 150m the dirt runs out.</span>
+</div>
+
+<script>
+(() => {
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const bayCtx = document.getElementById('bay').getContext('2d');
+  bayCtx.imageSmoothingEnabled = false;
+  const $ = id => document.getElementById(id);
+
+  const T = 16, COLS = 25, SURFACE = 4, VIEW_H = cvs.height;
+
+  // ---------- tiles ----------
+  // rock tiers 1..6 share ids 1..6; ore ids 10..15 map to tier (id-9)
+  const AIR = 0, BEDROCK = 7, LAVA = 8;
+
+  const ROCK = {
+    1: {name:'dirt',        hp:0.30, c:'#6b4a2f', c2:'#523821'},
+    2: {name:'soft stone',  hp:0.55, c:'#5c5347', c2:'#463f36'},
+    3: {name:'stone',       hp:0.85, c:'#4a4a58', c2:'#3a3a46'},
+    4: {name:'hard stone',  hp:1.20, c:'#3f4450', c2:'#31353f'},
+    5: {name:'basalt',      hp:1.70, c:'#37323f', c2:'#2a2632'},
+    6: {name:'obsidian',    hp:2.30, c:'#2b2635', c2:'#1e1a27'},
+  };
+  const ORES = {
+    10:{name:'coal',    tier:1, value:10,   c:'#191920'},
+    11:{name:'copper',  tier:2, value:32,   c:'#d2803f'},
+    12:{name:'iron',    tier:3, value:80,   c:'#cfc2b0'},
+    13:{name:'emerald', tier:4, value:200,  c:'#3ddc84'},
+    14:{name:'ruby',    tier:5, value:480,  c:'#ff4d6d'},
+    15:{name:'diamond', tier:6, value:1100, c:'#7fe6ff'},
+  };
+  const tierOf  = id => id >= 10 ? ORES[id].tier : (id >= 1 && id <= 6 ? id : 0);
+  const isRock  = id => (id >= 1 && id <= 6) || id >= 10;
+  const isSolidId = id => id !== AIR;
+
+  // ---------- upgrades ----------
+  const LAVA_VALUE = 240;
+  const TREES = [
+    { key:'speed', name:'DRILL SPEED', max:6, base:110,
+      desc:l => 'Cuts ' + Math.round((1 - 1/(1 + .17*l))*100) + '% faster than a stock bit.' },
+    { key:'size',  name:'DRILL SIZE', max:6, base:340,
+      desc:l => { if (l === 0) return 'Cuts one tile at a time.';
+        const r1 = Math.min(l, 3), r2 = Math.max(0, l - 3);
+        return 'Adjacent rock takes ' + r1 + '/3 of every cut' +
+               (r2 ? ', the tile beyond takes ' + r2 + '/3' : '') + ', and keeps it.'; } },
+    { key:'power', name:'DRILL POWER', max:5, base:150,
+      desc:l => { const t = Math.min(6, 1+l);
+        return 'Rated to ' + ROCK[t].name + ' (' + ORES[9+t].name + ')' +
+               (t < 6 ? '. Can overdrive into ' + ROCK[t+1].name + ' at a crawl.' : '.'); } },
+    { key:'radar', name:'RADAR', max:5, base:150,
+      desc:l => l === 0 ? 'No scan. Ore is invisible until exposed.'
+                        : 'Shows ore through ' + (l+1) + ' tiles of rock.' },
+    { key:'market',name:'MARKET RESEARCH', max:5, base:200,
+      desc:l => 'Ore sells for +' + (l*18) + '%.' },
+    { key:'cool',  name:'COOLING SYSTEM', max:5, base:170,
+      desc:l => 'Runs cool to ' + (50 + l*45) + 'm before heat starts dragging the drill.' },
+    { key:'fuel',  name:'FUEL CELLS', max:5, base:130,
+      desc:l => 'Carries ' + (3 + l*2) + ' cells per run. Powers climbing and the siphon.' },
+    { key:'climb', name:'CLIMBING TOOL', max:1, base:260, tool:true,
+      desc:l => l ? 'Hold up to climb. 1 cell per tile, and gravity waits.'
+                  : 'Unlocks upward movement. Burns 1 cell per tile climbed.' },
+    { key:'siphon',name:'LAVA SIPHON', max:1, base:420, tool:true,
+      desc:l => l ? 'Drains lava for $' + LAVA_VALUE + '. 1 cell each, leaves obsidian.'
+                  : 'Drains a lava tile for cash and leaves obsidian behind. 1 cell each.' },
+    { key:'ping',  name:'SEISMIC PING', max:1, base:300, tool:true,
+      desc:l => l ? 'PING or SPACE. 1 cell lights every ore on screen, for good.'
+                  : 'Pulses the rock. Ore it finds stays visible for the rest of the run.' },
+  ];
+  const lvl = { speed:0, size:0, power:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0 };
+  const costOf = (t, l) => Math.round(t.base * Math.pow(1.65, l));
+
+  const drillMult  = () => 1 + 0.17 * lvl.speed;
+  const boreRadius = () => lvl.size;
+  const maxTier    = () => Math.min(6, 1 + lvl.power);
+  // one tier above the bit's rating is possible, just brutal
+  const OVERDRIVE  = 0.16;
+  const canCut     = t => t <= maxTier() + 1;
+  const cutPenalty = t => t > maxTier() ? OVERDRIVE : 1;
+  const scanRange  = () => lvl.radar ? lvl.radar + 1 : 0;
+  const valueMult  = () => 1 + 0.18 * lvl.market;
+  const safeDepth  = () => 50 + 45 * lvl.cool;
+  const fuelMax    = () => 3 + 2 * lvl.fuel;
+  // the gauge only means something once something can spend it
+  const hasFuelTool = () => lvl.climb > 0 || lvl.siphon > 0 || lvl.ping > 0;
+  const canClimb   = () => lvl.climb > 0 && p && p.fuel > 0;
+  const RUN_TIME   = 60;
+
+  // heat drag: 1.0 while cool, falling off past the safe depth
+  function heatFactor(depth) {
+    const over = Math.max(0, depth - safeDepth());
+    return 1 / (1 + over / 90);
+  }
+
+  // ---------- world ----------
+  function hash(x, y, s) {
+    let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 1442695041);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+  let world = new Map(), seed = 1;
+  const key = (x, y) => x + ',' + y;
+
+  // lava blobs: coarse seed grid, radial falloff
+  const CELL = 8;
+  function lavaAt(x, y) {
+    const depth = y - SURFACE;
+    if (depth < 22) return false;
+    const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const gx = cx + i, gy = cy + j;
+      const live = hash(gx, gy, 41 + seed);
+      const density = Math.min(0.42, 0.06 + (gy * CELL - SURFACE) / 620);
+      if (live > density) continue;
+      const sx = gx * CELL + hash(gx, gy, 42 + seed) * CELL;
+      const sy = gy * CELL + hash(gx, gy, 43 + seed) * CELL;
+      const r = 1.6 + hash(gx, gy, 44 + seed) * 2.2;
+      const dx = x + 0.5 - sx, dy = y + 0.5 - sy;
+      if (dx*dx + dy*dy <= r*r) return true;
+    }
+    return false;
+  }
+
+  function rockTier(x, y, depth) {
+    // average tier climbs with depth; noise gives seams of harder and softer rock
+    const base = depth / 42;
+    const n = (hash(x, y, 11 + seed) + hash(Math.floor(x/3), Math.floor(y/4), 12 + seed) * 2) / 3;
+    let t = Math.round(1 + base + (n * 2.4 - 1.0));
+    if (depth > 150) t = Math.max(t, 3);   // no dirt or soft stone this deep
+    if (depth > 220) t = Math.max(t, 4);
+    return Math.max(1, Math.min(6, t));
+  }
+
+  function genTile(x, y) {
+    if (x < 0 || x >= COLS) return BEDROCK;
+    if (y < SURFACE) return AIR;
+    const depth = y - SURFACE;
+    if (depth === 0) return 1;
+    if (lavaAt(x, y)) return LAVA;
+    const t = rockTier(x, y, depth);
+    // ore chance dips slightly for the toughest rock so diamond stays a find
+    const chance = 0.105 - t * 0.006;
+    return hash(x, y, 7 + seed) < chance ? 9 + t : t;
+  }
+
+  function getTile(x, y) {
+    const k = key(x, y);
+    let t = world.get(k);
+    if (t === undefined) { t = genTile(x, y); world.set(k, t); }
+    return t;
+  }
+  const setTile = (x, y, v) => world.set(key(x, y), v);
+  const solid   = (x, y) => isSolidId(getTile(x, y));
+
+  function revealed(x, y) {
+    if (y <= SURFACE) return true;
+    if (pinged.has(key(x, y))) return true;
+    if (!solid(x-1,y) || !solid(x+1,y) || !solid(x,y-1) || !solid(x,y+1)) return true;
+    const id = getTile(x, y);
+    if (id === LAVA) {
+      // lava betrays itself through one tile of rock, so it is dodgeable
+      const d = Math.abs(x - p.x) + Math.abs(y - p.y);
+      return d <= 3;
+    }
+    const r = scanRange();
+    if (r && id >= 10) {
+      const dx = x - p.x, dy = y - p.y;
+      return dx*dx + dy*dy <= r*r;
+    }
+    return false;
+  }
+
+  // ---------- state ----------
+  // ore uncovered by a seismic ping stays on the map for the rest of the run
+  const pinged = new Set();
+
+  function seismicPing() {
+    if (!running || !lvl.ping) return;
+    if (p.fuel <= 0) { flash('Ping needs a cell.'); return; }
+    p.fuel--;
+    const y0 = Math.max(0, Math.floor(cam.y / T) - 1);
+    const y1 = Math.ceil((cam.y + VIEW_H) / T) + 1;
+    let found = 0;
+    for (let y = y0; y <= y1; y++)
+      for (let x = 0; x < COLS; x++)
+        if (getTile(x, y) >= 10 && !pinged.has(key(x, y))) { pinged.add(key(x, y)); found++; }
+    // shockwave
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2;
+      spawn(p.px + 8, p.py + 8, Math.cos(a) * 150, Math.sin(a) * 150 - 20, 2, '#7fe6ff', .45);
+    }
+    shake = 1.6;
+    flash(found ? 'PING: ' + found + ' seam' + (found === 1 ? '' : 's') + ' lit' : 'PING: dead rock');
+    hud();
+  }
+
+  let p, cam, shake = 0, flashT = 0, running = false, lavaAnim = 0;
+
+  // ---------- chunks + particles ----------
+  // every tile is treated as a 3x3 grid of chunks; drilling eats them one at a time
+  const CB = [0, 5, 11, 16];          // chunk edges inside a 16px tile
+  const chunkOrder = (x, y) =>
+    [0,1,2,3,4,5,6,7,8].sort((a, b) => hash(x*9+a, y, 55) - hash(x*9+b, y, 55));
+
+  const parts = [];
+  const MAX_PARTS = 320;
+
+  // chunk damage lives on the world, not the player, so a half-cut tile stays half-cut
+  const dmg = new Map();
+  const getDmg = (x, y) => dmg.get(key(x, y)) || 0;
+
+  // add chunk damage; returns true if the tile came apart
+  function addDmg(x, y, amt, force) {
+    if (amt <= 0) return false;
+    const id = getTile(x, y);
+    if (!isRock(id)) return false;
+    const k = key(x, y);
+    const before = getDmg(x, y);
+    const after = before + amt;
+    const c0 = Math.floor(before), c1 = Math.min(9, Math.floor(after));
+    if (c1 > c0) {
+      const order = chunkOrder(x, y);
+      for (let i = c0; i < c1; i++) chipAt(x, y, order[i], id, force || 1);
+    }
+    if (after >= 9) { dmg.delete(k); breakTile(x, y, true); return true; }
+    dmg.set(k, after);
+    return false;
+  }
+
+  // bring a tile up to a damage level without ever healing it
+  function raiseDmg(x, y, target) {
+    const cur = getDmg(x, y);
+    if (target > cur) addDmg(x, y, target - cur, 0.7);
+  }
+
+  function spawn(px, py, vx, vy, size, color, life) {
+    if (parts.length >= MAX_PARTS) parts.shift();
+    parts.push({ x:px, y:py, vx, vy, size, color, life, max:life });
+  }
+
+  function chunkColor(id) {
+    if (id >= 10) return Math.random() < .45 ? ORES[id].c : ROCK[ORES[id].tier].c;
+    return Math.random() < .5 ? ROCK[id].c : ROCK[id].c2;
+  }
+
+  // one chunk pops loose
+  function chipAt(tx, ty, ci, id, force) {
+    const cx = tx*T + CB[ci % 3] + 2;
+    const cy = ty*T + CB[Math.floor(ci / 3)] + 2;
+    spawn(cx, cy,
+      (Math.random()*2 - 1) * 46 * force,
+      -Math.random() * 58 * force - 12,
+      Math.random() < .35 ? 3 : 2,
+      chunkColor(id),
+      0.35 + Math.random() * 0.5);
+  }
+
+  function burst(tx, ty, id) {
+    for (let i = 0; i < 9; i++) chipAt(tx, ty, i, id, 1.6);
+    if (id >= 10)
+      for (let i = 0; i < 6; i++)
+        spawn(tx*T + 4 + Math.random()*8, ty*T + 4 + Math.random()*8,
+              (Math.random()*2-1)*30, -Math.random()*70 - 20, 2, ORES[id].c, .7 + Math.random()*.5);
+  }
+
+  function emberBurst(tx, ty) {
+    for (let i = 0; i < 14; i++)
+      spawn(tx*T + Math.random()*T, ty*T + Math.random()*T,
+            (Math.random()*2-1)*40, -Math.random()*90 - 30, Math.random() < .4 ? 3 : 2,
+            ['#ffd98a','#ff8a1e','#e2560f'][Math.floor(Math.random()*3)], .5 + Math.random()*.7);
+  }
+
+  // floating payout text that rises off the tile that paid
+  const pops = [];
+  function pop(x, y, text) {
+    pops.push({ x: x*T + T/2, y: y*T + 2, text, color: '#f2b134', life: 1.15, max: 1.15 });
+    if (pops.length > 14) pops.shift();
+  }
+  function updatePops(dt) {
+    for (let i = pops.length - 1; i >= 0; i--) {
+      const q = pops[i];
+      q.life -= dt;
+      q.y -= 26 * dt * (q.life / q.max + .35);
+      if (q.life <= 0) pops.splice(i, 1);
+    }
+  }
+  function drawPops() {
+    ctx.font = "10px TinyMiner, monospace";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    for (const q of pops) {
+      const a = Math.min(1, q.life / q.max * 2.2);
+      const x = Math.round(q.x), y = Math.round(q.y);
+      ctx.globalAlpha = a * .85;
+      ctx.fillStyle = '#000';
+      ctx.fillText(q.text, x + 1, y + 1);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = q.color;
+      ctx.fillText(q.text, x, y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+  }
+
+  function updateParts(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i];
+      q.life -= dt;
+      if (q.life <= 0) { parts.splice(i, 1); continue; }
+      q.vy += 340 * dt;                  // debris falls
+      q.x += q.vx * dt;
+      q.y += q.vy * dt;
+      // settle on solid ground instead of sinking through the world
+      const gx = Math.floor(q.x / T), gy = Math.floor((q.y + q.size) / T);
+      if (q.vy > 0 && solid(gx, gy)) { q.vy *= -0.24; q.vx *= 0.5; q.y = gy*T - q.size; }
+    }
+  }
+
+  function drawParts() {
+    for (const q of parts) {
+      ctx.globalAlpha = Math.min(1, q.life / q.max * 1.6);
+      ctx.fillStyle = q.color;
+      ctx.fillRect(Math.round(q.x), Math.round(q.y), q.size, q.size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function newRun() {
+    world = new Map();
+    dmg.clear();
+    pinged.clear();
+    seed = Math.floor(Math.random() * 1e6);
+    const sy = SURFACE - 1;
+    p = { x:12, y:sy, px:12*T, py:sy*T, dir:1, face:'down',
+          moving:false, mt:0, dur:.12, tx:12, ty:sy, fx:12*T, fy:sy*T,
+          drilling:null, prog:0, chunks:0, run:0, depth:0, best:0, t:RUN_TIME, molten:false,
+          fuel:fuelMax() };
+    parts.length = 0;
+    pops.length = 0;
+    cam = { y: p.py - VIEW_H*0.42 };
+    shake = 0; running = true;
+    $('workshop').classList.remove('on');
+    flash('Deploying.');
+    hud();
+  }
+
+  const keys = {};
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+    keys[k] = true;
+    if (k === ' ' || k === 'e') seismicPing();
+  });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  const held = () =>
+    (keys['a']||keys['arrowleft'])  ? 'left'  :
+    (keys['d']||keys['arrowright']) ? 'right' :
+    (keys['s']||keys['arrowdown'])  ? 'down'  :
+    (keys['w']||keys['arrowup'])    ? 'up'    : null;
+
+  function flash(t) { $('flash').textContent = t; $('flash').classList.add('on'); flashT = 2; }
+
+  // ---------- drilling ----------
+  function breakTile(x, y, headOn) {
+    const id = getTile(x, y);
+    if (!isRock(id)) return;
+    // side-shatter only works on rock the bit is actually rated for;
+    // overdriven tiers have to be cut head-on
+    if (!headOn && tierOf(id) > maxTier()) return;
+    setTile(x, y, AIR);
+    dmg.delete(key(x, y));
+    burst(x, y, id);
+    if (id >= 10) {
+      const o = ORES[id];
+      const v = Math.round(o.value * valueMult());
+      p.run += v;
+      pop(x, y, '+$' + v);
+      flash(o.name.toUpperCase() + '  +$' + v);
+    }
+    // molten rock pours into an opening from beside or above it -- never upward
+    if (getTile(x-1, y) === LAVA || getTile(x+1, y) === LAVA || getTile(x, y-1) === LAVA) {
+      setTile(x, y, LAVA);
+      dmg.delete(key(x, y));
+      emberBurst(x, y);
+      shake = 1.4;
+    }
+  }
+
+  function step(nx, ny, dur) {
+    p.fx = p.px; p.fy = p.py;
+    p.tx = nx; p.ty = ny; p.moving = true; p.mt = 0; p.dur = dur;
+  }
+
+  function update(dt) {
+    updateParts(dt);
+    updatePops(dt);
+    if (!running) return;
+    p.t -= dt;
+    if (p.t <= 0) { p.t = 0; hud(); endRun(false); return; }
+
+    const heat = heatFactor(p.depth);
+    const moveTime = 0.12 / Math.max(0.25, heat);
+
+    if (p.moving) {
+      p.mt += dt;
+      const k = Math.min(1, p.mt / p.dur);
+      p.px = p.fx + (p.tx*T - p.fx) * k;
+      p.py = p.fy + (p.ty*T - p.fy) * k;
+      if (k >= 1) {
+        p.moving = false; p.x = p.tx; p.y = p.ty;
+        if (getTile(p.x, p.y) === LAVA) { endRun(true); return; }
+      }
+    } else if (getTile(p.x, p.y) === LAVA) {
+      endRun(true); return;
+    } else if (!solid(p.x, p.y + 1) && !(held() === 'up' && canClimb())) {
+      step(p.x, p.y + 1, 0.09);
+    } else {
+      const d = held();
+      if (!d) { p.drilling = null; p.prog = 0; p.chunks = 0; }
+      else {
+        const dx = d==='left' ? -1 : d==='right' ? 1 : 0;
+        const dy = d==='down' ? 1 : d==='up' ? -1 : 0;
+        const nx = p.x + dx, ny = p.y + dy;
+        p.face = d; if (dx) p.dir = dx;
+        const id = getTile(nx, ny);
+
+        if (id === AIR) {
+          p.drilling = null; p.prog = 0;
+          if (dy === -1) {
+            if (!lvl.climb) { flash('No climbing gear fitted.'); }
+            else if (p.fuel <= 0) { flash('Cells dry. No lift left.'); }
+            else { p.fuel--; step(nx, ny, moveTime); }
+          } else step(nx, ny, moveTime);
+        } else if (id === LAVA) {
+          if (!lvl.siphon) { p.prog = 0; flash('Molten. Cut around it.'); }
+          else if (p.fuel <= 0) { p.prog = 0; flash('Siphon needs a cell.'); }
+          else {
+            const dk = key(nx, ny);
+            if (p.drilling !== dk) { p.drilling = dk; p.prog = 0; p.chunks = 0; }
+            p.prog += dt / 0.75;
+            shake = Math.max(shake, 0.8);
+            if (Math.random() < dt * 30)
+              spawn(nx*T + Math.random()*T, ny*T + Math.random()*T,
+                    (p.x - nx) * 20, -30 - Math.random()*40, 2, '#ffb03a', .4);
+            if (p.prog >= 1) {
+              p.fuel--;
+              const v = Math.round(LAVA_VALUE * valueMult());
+              p.run += v;
+              pop(nx, ny, '+$' + v);
+              setTile(nx, ny, 6); dmg.delete(key(nx, ny));   // cools into obsidian
+              emberBurst(nx, ny);
+              flash('LAVA SIPHONED  +$' + v);
+              p.drilling = null; p.prog = 0; p.chunks = 0;
+            }
+          }
+        } else if (id === BEDROCK) {
+          p.prog = 0; flash('Bedrock wall.');
+        } else if (!canCut(tierOf(id))) {
+          p.prog = 0;
+          flash('Way past the bit: ' + (id >= 10 ? ORES[id].name : ROCK[id].name) + '.');
+        } else {
+          const tier = tierOf(id);
+          const over = tier > maxTier();
+          const hp = id >= 10 ? ROCK[ORES[id].tier].hp * 1.15 : ROCK[id].hp;
+          const dk = key(nx, ny);
+          if (p.drilling !== dk) {
+            p.drilling = dk;
+            if (over) flash('Overdriving the bit. This will cost you.');
+          }
+
+          // 9 chunks per tile, stored on the tile so a pause never loses progress
+          const rate = (dt * drillMult() * heat * cutPenalty(tier)) / hp * 9;
+          const broke = addDmg(nx, ny, rate, 1);
+          shake = Math.max(shake, 0.5);
+
+          // drill size bleeds damage outward at 1/3 of the main cut per level:
+          // levels 1-3 fill the adjacent ring, 4-6 reach one tile further out
+          const base = broke ? 9 : getDmg(nx, ny);
+          const rings = [Math.min(lvl.size, 3) / 3, Math.max(0, lvl.size - 3) / 3];
+          const side = (ax, ay, amt) => {
+            if (amt > 0 && tierOf(getTile(ax, ay)) <= maxTier()) raiseDmg(ax, ay, base * amt);
+          };
+          for (let ring = 1; ring <= 2; ring++) {
+            const amt = rings[ring - 1];
+            if (dy !== 0) { side(nx - ring, ny, amt); side(nx + ring, ny, amt); }
+            else side(nx + dx * ring, ny, amt);
+          }
+
+          if (broke) {
+            p.drilling = null;
+            if (getTile(nx, ny) === AIR) {
+              if (dy === -1) {                     // rising into the cut costs lift
+                if (canClimb()) { p.fuel--; step(nx, ny, moveTime); }
+                else flash('Cut it open, but nothing to climb with.');
+              } else step(nx, ny, moveTime);
+            }
+          }
+        }
+      }
+    }
+
+    p.depth = Math.max(0, p.y - SURFACE + 1);
+    p.best = Math.max(p.best, p.depth);
+    shake = Math.max(0, shake - dt*4);
+    lavaAnim += dt;
+    if (flashT > 0 && (flashT -= dt) <= 0) $('flash').classList.remove('on');
+
+    cam.y += ((p.py - VIEW_H*0.42) - cam.y) * Math.min(1, dt*7);
+    cam.y = Math.max(cam.y, -40);
+    hud();
+  }
+
+  function hud() {
+    const low = p.t < 10;
+    $('clock').textContent = p.t.toFixed(1);
+    $('clockBox').classList.toggle('low', low);
+    const bar = $('timebar');
+    bar.style.width = (100 * p.t / RUN_TIME) + '%';
+    bar.classList.toggle('low', low);
+    $('depth').textContent = p.depth + 'm';
+    $('run').textContent = '$' + p.run;
+    $('bank').textContent = '$' + bank;
+    $('heatbar').style.width = Math.round(100 * (1 - heatFactor(p.depth))) + '%';
+
+    const pb = $('pingBtn');
+    pb.hidden = !lvl.ping;
+    pb.disabled = !running || p.fuel <= 0;
+
+    const box = $('fuelBox');
+    box.hidden = !hasFuelTool();
+    if (!box.hidden) {
+      const max = fuelMax(), cells = $('cells');
+      if (cells.childElementCount !== max) {
+        cells.innerHTML = '';
+        for (let i = 0; i < max; i++) cells.appendChild(document.createElement('i'));
+      }
+      [...cells.children].forEach((c, i) => {
+        c.className = i < p.fuel ? 'on' : 'spent';
+      });
+    }
+  }
+
+  // ---------- render ----------
+  function drawTile(x, y) {
+    const id = getTile(x, y);
+    if (id === AIR) return;
+    const sx = x*T, sy = y*T;
+
+    if (!revealed(x, y)) {
+      ctx.fillStyle = '#191922'; ctx.fillRect(sx, sy, T, T);
+      ctx.fillStyle = '#14141c'; ctx.fillRect(sx, sy, T, 2);
+      return;
+    }
+
+    if (id === LAVA) {
+      const pulse = 0.5 + 0.5 * Math.sin(lavaAnim * 3 + x * 0.9 + y * 0.6);
+      ctx.fillStyle = '#a32610'; ctx.fillRect(sx, sy, T, T);
+      ctx.fillStyle = '#e2560f'; ctx.fillRect(sx, sy + 2, T, T - 2);
+      ctx.fillStyle = pulse > .5 ? '#ffb03a' : '#ff8a1e';
+      for (let i = 0; i < 5; i++) {
+        const rx = Math.floor(hash(x*7+i, y, 31) * (T-3));
+        const ry = Math.floor(hash(x, y*7+i, 32) * (T-3));
+        ctx.fillRect(sx+rx, sy+ry+1, 3, 2);
+      }
+      ctx.fillStyle = '#ffd98a'; ctx.fillRect(sx, sy, T, 1);
+      return;
+    }
+
+    if (id === BEDROCK) {
+      ctx.fillStyle = '#22222c'; ctx.fillRect(sx, sy, T, T);
+      ctx.fillStyle = '#191921'; ctx.fillRect(sx+2, sy+4, 4, 8);
+      return;
+    }
+
+    const tier = tierOf(id);
+    const r = ROCK[tier];
+    ctx.fillStyle = r.c; ctx.fillRect(sx, sy, T, T);
+    ctx.fillStyle = r.c2;
+    for (let i = 0; i < 6; i++) {
+      const rx = Math.floor(hash(x*13+i, y, 21) * (T-2));
+      const ry = Math.floor(hash(x, y*13+i, 22) * (T-2));
+      ctx.fillRect(sx+rx, sy+ry, 2, 2);
+    }
+
+    if (id >= 10) {
+      const o = ORES[id];
+      ctx.fillStyle = o.c;
+      for (let i = 0; i < 5; i++) {
+        const rx = 2 + Math.floor(hash(x*17+i, y, 25) * (T-6));
+        const ry = 2 + Math.floor(hash(x, y*17+i, 26) * (T-6));
+        ctx.fillRect(sx+rx, sy+ry, 3, 3);
+      }
+      ctx.globalAlpha = .5; ctx.fillStyle = '#fff';
+      ctx.fillRect(sx+5, sy+4, 1, 1); ctx.fillRect(sx+9, sy+9, 1, 1);
+      ctx.globalAlpha = 1;
+    }
+
+    if (tier > maxTier()) {
+      // amber corners: cuttable, but only by overdriving. red: hopeless for now.
+      const soft = tier === maxTier() + 1;
+      ctx.globalAlpha = soft ? .45 : .6;
+      ctx.fillStyle = soft ? '#f2b134' : '#e2564a';
+      ctx.fillRect(sx+1, sy+1, 3, 1); ctx.fillRect(sx+1, sy+1, 1, 3);
+      ctx.fillRect(sx+T-4, sy+T-2, 3, 1); ctx.fillRect(sx+T-2, sy+T-4, 1, 3);
+      if (!soft) { ctx.fillRect(sx+T-4, sy+1, 3, 1); ctx.fillRect(sx+1, sy+T-2, 3, 1); }
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(sx, sy, T, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';       ctx.fillRect(sx, sy+T-1, T, 1);
+
+    // any tile carrying damage shows it, drilled or not
+    const eaten = Math.floor(getDmg(x, y));
+    if (eaten > 0) {
+      const order = chunkOrder(x, y);
+      for (let i = 0; i < eaten; i++) {
+        const ci = order[i], cxi = ci % 3, cyi = Math.floor(ci / 3);
+        const x0 = CB[cxi], x1 = CB[cxi+1], y0 = CB[cyi], y1 = CB[cyi+1];
+        ctx.fillStyle = '#0b0a10';
+        ctx.fillRect(sx + x0, sy + y0, x1 - x0, y1 - y0);
+        ctx.fillStyle = 'rgba(0,0,0,.5)';
+        ctx.fillRect(sx + x0, sy + y0, x1 - x0, 1);
+      }
+    }
+  }
+
+  const ROBOT = ['..HHHHHH..','.HVVVVVVH.','HVEEVVEEVH','HVEEVVEEVH',
+                 'HVVVVVVVVH','.HVVVVVVH.','..HHHHHH..','.T.HHHH.T.'];
+  const PAL = { H:'#2f3a4a', V:'#8fa3bd', E:'#f2b134', T:'#1b222c' };
+
+  function paintRobot(c, sx, sy, dir, face, wob, tint) {
+    for (let r = 0; r < ROBOT.length; r++)
+      for (let k = 0; k < ROBOT[r].length; k++) {
+        const ch = ROBOT[r][k]; if (ch === '.') continue;
+        c.fillStyle = ch === 'E' && tint ? tint : PAL[ch];
+        c.fillRect(sx + 3 + (dir < 0 ? ROBOT[r].length-1-k : k), sy + 4 + r, 1, 1);
+      }
+    c.fillStyle = '#d9dde6';
+    if (face === 'down')  c.fillRect(sx+6, sy+12+wob, 4, 4);
+    if (face === 'up')    c.fillRect(sx+6, sy+1-wob, 4, 3);
+    if (face === 'left')  c.fillRect(sx+1-wob, sy+7, 4, 4);
+    if (face === 'right') c.fillRect(sx+11+wob, sy+7, 4, 4);
+  }
+
+  function render() {
+    ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+    const sh = shake > 0 ? (Math.random()*2-1) * shake : 0;
+    ctx.save();
+    ctx.translate(sh, -Math.round(cam.y) + sh);
+
+    if (cam.y < SURFACE*T + 60) {
+      const g = ctx.createLinearGradient(0, -80, 0, SURFACE*T);
+      g.addColorStop(0, '#241d3a'); g.addColorStop(1, '#4a3a52');
+      ctx.fillStyle = g; ctx.fillRect(0, -240, cvs.width, SURFACE*T + 240);
+    }
+
+    const y0 = Math.max(0, Math.floor(cam.y/T) - 1);
+    const y1 = Math.ceil((cam.y + VIEW_H)/T) + 1;
+    for (let y = y0; y <= y1; y++) for (let x = 0; x < COLS; x++) drawTile(x, y);
+
+    drawParts();
+
+    if (!p.molten)
+      paintRobot(ctx, Math.round(p.px), Math.round(p.py), p.dir, p.face,
+                 p.drilling && Math.random() < .5 ? 1 : 0, null);
+
+    const heat = 1 - heatFactor(p.depth);
+    const dark = Math.min(.62, Math.max(0, (p.y - SURFACE)/150));
+    if (dark > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,' + dark + ')';
+      ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+      const lg = ctx.createRadialGradient(p.px+8, p.py+8, 8, p.px+8, p.py+8, 92);
+      lg.addColorStop(0, 'rgba(255,225,170,' + dark*.55 + ')');
+      lg.addColorStop(1, 'rgba(255,225,170,0)');
+      ctx.fillStyle = lg; ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+    }
+    if (heat > .12) {
+      ctx.fillStyle = 'rgba(255,90,30,' + (heat * .22) + ')';
+      ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+    }
+    drawPops();
+    ctx.restore();
+  }
+
+  // ---------- workshop ----------
+  let bank = 0, bestEver = 0;
+
+  function drawBay() {
+    bayCtx.fillStyle = '#181425'; bayCtx.fillRect(0, 0, 52, 52);
+    bayCtx.fillStyle = '#221d33';
+    for (let i = 0; i < 52; i += 4) bayCtx.fillRect(0, i, 52, 1);
+    bayCtx.fillStyle = '#2b2740'; bayCtx.fillRect(6, 40, 40, 3);
+    const heatTint = ['#f2b134','#f2b134','#ffc75a','#ffd98a','#bff5ff','#7fe6ff'][lvl.cool];
+    paintRobot(bayCtx, 18, 16, 1, 'down', 0, heatTint);
+    // drill-size arms
+    bayCtx.fillStyle = '#d9dde6';
+    for (let i = 1; i <= lvl.size; i++) {
+      const ring = i > 3 ? 2 : 1, k = ((i - 1) % 3) + 1;
+      bayCtx.globalAlpha = ring === 2 ? .55 : 1;
+      bayCtx.fillRect(24 - ring*7 - k, 34 + (ring-1)*4, 3, 3);
+      bayCtx.fillRect(24 + ring*7 + k, 34 + (ring-1)*4, 3, 3);
+    }
+    bayCtx.globalAlpha = 1;
+    // radar ring
+    if (lvl.radar) {
+      bayCtx.strokeStyle = 'rgba(95,208,138,.5)';
+      bayCtx.beginPath();
+      bayCtx.arc(26, 26, 8 + lvl.radar * 2.6, 0, Math.PI*2);
+      bayCtx.stroke();
+    }
+  }
+
+  function renderTrees() {
+    const wrap = $('trees'), toolWrap = $('tools');
+    wrap.innerHTML = ''; toolWrap.innerHTML = '';
+    TREES.forEach(t => {
+      const l = lvl[t.key];
+      const maxed = l >= t.max;
+      const cost = costOf(t, l);
+      const el = document.createElement('div');
+      el.className = 'tree' + (maxed ? ' max' : '');
+      const pips = t.tool ? '' : Array.from({length: t.max}, (_, i) =>
+        '<i class="pip' + (i < l ? ' on' : '') + '"></i>').join('');
+      el.innerHTML =
+        '<div class="trow"><h3>' + t.name + '</h3><div class="pips">' + pips + '</div></div>' +
+        '<p>' + t.desc(l) + '</p>';
+      const btn = document.createElement('button');
+      btn.className = 'buy';
+      btn.textContent = maxed ? (t.tool ? 'FITTED' : 'MAXED') : 'UPGRADE  $' + cost;
+      if (t.tool && !maxed) btn.textContent = 'UNLOCK  $' + cost;
+      btn.disabled = maxed || bank < cost;
+      btn.onclick = () => {
+        if (bank < cost || maxed) return;
+        bank -= cost; lvl[t.key]++;
+        renderTrees(); drawBay(); hud();
+        $('wBank').textContent = '$' + bank;
+      };
+      el.appendChild(btn);
+      (t.tool ? toolWrap : wrap).appendChild(el);
+    });
+    $('wNote').innerHTML =
+      'Cool to ' + safeDepth() + 'm / bit reaches ' + ROCK[maxTier()].name +
+      ' / radar ' + (scanRange() || 'offline') +
+      (hasFuelTool() ? ' / ' + fuelMax() + ' cells' : '');
+  }
+
+  function endRun(molten) {
+    running = false;
+    p.molten = !!molten;
+    const kept = molten ? Math.floor(p.run / 2) : p.run;
+    bank += kept;
+    bestEver = Math.max(bestEver, p.best);
+    hud();
+    $('wTitle').textContent = molten ? 'RIG LOST' : 'RECOVERED';
+    $('wSub').innerHTML = molten
+      ? 'The lava took the rig at ' + p.best + 'm. Salvage crews recovered <b style="color:var(--bad)">$' + kept + '</b> of $' + p.run + '.<br>Deepest ever ' + bestEver + 'm.'
+      : 'Hauled <b style="color:var(--good)">$' + kept + '</b> back up from ' + p.best + 'm.<br>Deepest ever ' + bestEver + 'm.';
+    $('wBank').textContent = '$' + bank;
+    renderTrees(); drawBay();
+    $('workshop').classList.add('on');
+    $('startBtn').focus();
+  }
+
+  $('startBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
+  $('pingBtn').onclick = seismicPing;
+
+
+  // boot to the title card; the workshop only opens between runs
+  $('playBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
+  newRun();
+  running = false;
+  $('wBank').textContent = '$' + bank;
+  renderTrees(); drawBay();
+  hud();
+
+  let last = performance.now();
+  requestAnimationFrame(function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000);
+    last = now;
+    update(dt); render();
+    requestAnimationFrame(loop);
+  });
+})();
+</script>
+</body>
+</html>
