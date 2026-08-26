@@ -446,7 +446,7 @@
     hud();
   }
 
-  let p, cam, shake = 0, flashT = 0, running = false, lavaAnim = 0;
+  let p, cam, shake = 0, flashT = 0, running = false, lavaAnim = 0, animT = 0;
 
   // ---------- chunks + particles ----------
   // every tile is treated as a 3x3 grid of chunks; drilling eats them one at a time
@@ -587,6 +587,7 @@
           moving:false, mt:0, dur:.12, tx:12, ty:sy, fx:12*T, fy:sy*T,
           drilling:null, prog:0, chunks:0, run:0, depth:0, best:0, t:RUN_TIME, molten:false,
           hover:false,   // a climb leaves you hanging until you do something else
+          burn:0,        // booster flame timer, refreshed by every climb
           fuel:fuelMax() };
     parts.length = 0;
     pops.length = 0;
@@ -694,7 +695,7 @@
             if (upSpent) { /* this hold already cut rock -- let go before climbing */ }
             else if (!lvl.climb) { flash('No climbing gear fitted.'); }
             else if (p.fuel <= 0) { flash('Cells dry. No lift left.'); }
-            else { p.fuel--; p.hover = true; step(nx, ny, moveTime); }
+            else { p.fuel--; p.hover = true; p.burn = 0.22; step(nx, ny, moveTime); }
           } else step(nx, ny, moveTime);
         } else if (id === LAVA) {
           if (dy === -1) upSpent = true;
@@ -768,6 +769,8 @@
       }
     }
 
+    animT += dt;
+    p.burn = Math.max(0, p.burn - dt);
     markSeen();
     p.depth = Math.max(0, p.y - SURFACE + 1);
     p.best = Math.max(p.best, p.depth);
@@ -902,18 +905,137 @@
                  'HVVVVVVVVH','.HVVVVVVH.','..HHHHHH..','.T.HHHH.T.'];
   const PAL = { H:'#2f3a4a', V:'#8fa3bd', E:'#f2b134', T:'#1b222c' };
 
-  function paintRobot(c, sx, sy, dir, face, wob, tint) {
+  // ---------- rig appearance ----------
+  // every visible part of the robot is read straight off the upgrade levels,
+  // so the workshop bay and the world always show the same machine
+  const COOL_TINT = ['#f2b134','#f2b134','#ffc75a','#ffd98a','#bff5ff','#7fe6ff'];
+  const coolTint = () => COOL_TINT[Math.min(COOL_TINT.length-1, lvl.cool)];
+
+  // tiers 1-4 a mechanical bit that grows and roughens, 5-9 a widening red
+  // laser, 10 a blue lance that throws sparks
+  function bitLook() {
+    const tier = maxTier();
+    if (tier <= 4) return { laser:false, w: 3 + tier, len: 3 + tier, speck: tier - 1 };
+    if (tier <= 9) return { laser:true, w: 2 + (tier - 4), len: 5,
+                            core:'#ffe2e2', glow:'226,86,74' };
+    return { laser:true, w: 7, len: 6, core:'#eaffff', glow:'127,230,255', ultra:true };
+  }
+
+  // one rect drawn outward along whichever way the robot faces
+  function axisRect(c, ox, oy, dx, dy, len, w, col, alpha) {
+    c.globalAlpha = alpha === undefined ? 1 : alpha;
+    c.fillStyle = col;
+    const hw = w / 2;
+    if (dx) c.fillRect(Math.round(dx > 0 ? ox : ox - len), Math.round(oy - hw), Math.round(len), Math.round(w));
+    else    c.fillRect(Math.round(ox - hw), Math.round(dy > 0 ? oy : oy - len), Math.round(w), Math.round(len));
+    c.globalAlpha = 1;
+  }
+
+  const FACE_AXIS = {
+    down:  (sx, sy, wob) => [sx+8, sy+12+wob,  0,  1],
+    up:    (sx, sy, wob) => [sx+8, sy+4-wob,   0, -1],
+    left:  (sx, sy, wob) => [sx+5-wob, sy+9,  -1,  0],
+    right: (sx, sy, wob) => [sx+11+wob, sy+9,  1,  0],
+  };
+
+  function paintBit(c, sx, sy, face, wob, drilling) {
+    const axis = FACE_AXIS[face]; if (!axis) return;
+    const [ox, oy, dx, dy] = axis(sx, sy, wob);
+    const b = bitLook();
+
+    if (!b.laser) {
+      axisRect(c, ox, oy, dx, dy, b.len, b.w, '#d9dde6');
+      // speckled carbide -- deterministic dots so the bit does not crawl
+      c.fillStyle = '#7f8797';
+      for (let i = 0; i < b.speck * 2; i++) {
+        const a = (i * 0.618) % 1, t = ((i * 0.377) % 1);
+        const along = 1 + a * (b.len - 2), across = -b.w/2 + 1 + t * (b.w - 2);
+        c.fillRect(Math.round(ox + (dx ? dx*along : across)),
+                   Math.round(oy + (dy ? dy*along : across)), 1, 1);
+      }
+      return;
+    }
+
+    // laser: a stub at rest, reaching a full tile into the rock while cutting
+    const len = drilling ? T : b.len;
+    axisRect(c, ox, oy, dx, dy, len, b.w + 4, 'rgba(' + b.glow + ',.20)');
+    axisRect(c, ox, oy, dx, dy, len, b.w + 2, 'rgba(' + b.glow + ',.45)');
+    axisRect(c, ox, oy, dx, dy, len, b.w, 'rgb(' + b.glow + ')');
+    axisRect(c, ox, oy, dx, dy, len, Math.max(1, b.w - 3), b.core);
+    if (b.ultra && drilling) {
+      // the impact point flares
+      const ix = ox + dx * len, iy = oy + dy * len;
+      c.globalAlpha = .5; c.fillStyle = b.core;
+      c.fillRect(Math.round(ix - 3), Math.round(iy - 3), 6, 6);
+      c.globalAlpha = 1;
+    }
+  }
+
+  function paintWheels(c, sx, sy, phase) {
+    if (!lvl.wheels) return;
+    const w = lvl.wheels;
+    const size = w >= 7 ? 4 : w >= 4 ? 3 : 2;           // treads fatten in thirds
+    const rim  = w >= 7 ? '#bff5ff' : w >= 4 ? '#9fb4cf' : '#6d7a8d';
+    const y = sy + 12;
+    [sx + 3, sx + 13 - size].forEach((x, side) => {
+      c.fillStyle = '#1b222c'; c.fillRect(x, y, size, size);
+      c.fillStyle = rim;
+      // a lit spoke that walks around the tread so speed reads while rolling
+      const step = (Math.floor(phase * (2 + w)) + side) % 4;
+      const sp = [[0,0],[size-1,0],[size-1,size-1],[0,size-1]][step];
+      c.fillRect(x + sp[0], y + sp[1], 1, 1);
+      if (w >= 10) { c.globalAlpha = .5; c.fillRect(x, y + size, size, 1); c.globalAlpha = 1; }
+    });
+  }
+
+  function paintCooling(c, sx, sy) {
+    if (lvl.cool < 2) return;
+    c.fillStyle = coolTint();
+    const fins = Math.min(3, lvl.cool - 1);
+    for (let i = 0; i < fins; i++) {
+      c.fillRect(sx + 2, sy + 6 + i*2, 1, 1);
+      c.fillRect(sx + 13, sy + 6 + i*2, 1, 1);
+    }
+  }
+
+  function paintCells(c, sx, sy) {
+    if (!lvl.fuel) return;
+    c.fillStyle = '#5fd08a';
+    for (let i = 0; i < lvl.fuel; i++) c.fillRect(sx + 4 + i*2, sy + 3, 1, 1);
+  }
+
+  function paintBoosters(c, sx, sy, burn, phase) {
+    if (!lvl.climb) return;
+    c.fillStyle = '#4a5364';
+    c.fillRect(sx + 4, sy + 12, 2, 2);
+    c.fillRect(sx + 10, sy + 12, 2, 2);
+    if (burn <= 0) return;
+    // flame length flickers on a phase so it never sits still
+    const k = Math.min(1, burn / 0.22);
+    [sx + 4, sx + 10].forEach((x, side) => {
+      const h = Math.round((2 + Math.floor(((phase * 17) + side * 3) % 3)) * k);
+      if (h <= 0) return;
+      c.fillStyle = 'rgba(255,176,58,.85)'; c.fillRect(x, sy + 14, 2, h);
+      c.fillStyle = 'rgba(255,240,190,.9)'; c.fillRect(x, sy + 14, 2, Math.max(1, h - 2));
+    });
+  }
+
+  function paintRobot(c, sx, sy, dir, face, wob, tint, o) {
+    o = o || {};
+    const phase = o.phase || 0;
+    // bit first so the beam reads as coming out from under the chassis,
+    // then the running gear, then the body on top of both
+    paintBit(c, sx, sy, face, wob, !!o.drilling);
+    paintBoosters(c, sx, sy, o.burn || 0, phase);
+    paintWheels(c, sx, sy, phase);
     for (let r = 0; r < ROBOT.length; r++)
       for (let k = 0; k < ROBOT[r].length; k++) {
         const ch = ROBOT[r][k]; if (ch === '.') continue;
         c.fillStyle = ch === 'E' && tint ? tint : PAL[ch];
         c.fillRect(sx + 3 + (dir < 0 ? ROBOT[r].length-1-k : k), sy + 4 + r, 1, 1);
       }
-    c.fillStyle = '#d9dde6';
-    if (face === 'down')  c.fillRect(sx+6, sy+12+wob, 4, 4);
-    if (face === 'up')    c.fillRect(sx+6, sy+1-wob, 4, 3);
-    if (face === 'left')  c.fillRect(sx+1-wob, sy+7, 4, 4);
-    if (face === 'right') c.fillRect(sx+11+wob, sy+7, 4, 4);
+    paintCooling(c, sx, sy);
+    paintCells(c, sx, sy);
   }
 
   function render() {
@@ -934,9 +1056,24 @@
 
     drawParts();
 
-    if (!p.molten)
+    if (!p.molten) {
       paintRobot(ctx, Math.round(p.px), Math.round(p.py), p.dir, p.face,
-                 p.drilling && Math.random() < .5 ? 1 : 0, null);
+                 p.drilling && Math.random() < .5 ? 1 : 0, coolTint(),
+                 { drilling: !!p.drilling, burn: p.burn, phase: animT });
+
+      // tier-10 lance: a bounded shower of sparks and a soft halo at the cut
+      if (p.drilling && maxTier() === TOP_TIER) {
+        if (Math.random() < .55) {
+          const a = Math.random() * Math.PI * 2;
+          spawn(p.px + 8, p.py + 8, Math.cos(a) * 70, Math.sin(a) * 70 - 20,
+                1 + (Math.random() < .3 ? 1 : 0), Math.random() < .4 ? '#eaffff' : '#7fe6ff', .25 + Math.random() * .3);
+        }
+        const hg = ctx.createRadialGradient(p.px + 8, p.py + 8, 2, p.px + 8, p.py + 8, 26);
+        hg.addColorStop(0, 'rgba(127,230,255,.22)');
+        hg.addColorStop(1, 'rgba(127,230,255,0)');
+        ctx.fillStyle = hg; ctx.fillRect(p.px - 20, p.py - 20, 56, 56);
+      }
+    }
 
     const heat = 1 - heatFactor(p.depth);
     const dark = Math.min(.62, Math.max(0, (p.y - SURFACE)/150));
@@ -959,13 +1096,16 @@
   // ---------- workshop ----------
   let bank = 0, bestEver = 0;
 
+  let bayAnim = 0;
   function drawBay() {
     bayCtx.fillStyle = '#181425'; bayCtx.fillRect(0, 0, 52, 52);
     bayCtx.fillStyle = '#221d33';
     for (let i = 0; i < 52; i += 4) bayCtx.fillRect(0, i, 52, 1);
     bayCtx.fillStyle = '#2b2740'; bayCtx.fillRect(6, 40, 40, 3);
-    const heatTint = ['#f2b134','#f2b134','#ffc75a','#ffd98a','#bff5ff','#7fe6ff'][lvl.cool];
-    paintRobot(bayCtx, 18, 16, 1, 'down', 0, heatTint);
+    // the bay shows the rig mid-cut with the boosters lit, so every purchase reads
+    bayAnim += 0.05;
+    paintRobot(bayCtx, 18, 16, 1, 'down', 0, coolTint(),
+               { drilling:true, burn: lvl.climb ? 0.22 : 0, phase: bayAnim });
     // drill-size arms
     bayCtx.fillStyle = '#d9dde6';
     for (let i = 1; i <= lvl.size; i++) {
