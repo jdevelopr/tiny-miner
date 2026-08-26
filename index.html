@@ -136,23 +136,27 @@
   /* controls sit low in the shell, where a thumb actually lands */
   html.touch .pad{ display:grid; visibility:hidden; flex:1; min-height:0; width:100%;
                    grid-template-columns:1fr 1fr; align-content:end; gap:14px;
-                   padding:10px 16px calc(18px + env(safe-area-inset-bottom)) }
-  .dpad{ display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px);
+                   padding:10px 12px calc(18px + env(safe-area-inset-bottom)) }
+  /* the controls shrink on narrow phones so nothing walks off the edge */
+  html.touch{ --dp:clamp(44px, 15.5vw, 60px); --cb:clamp(48px, 16vw, 62px) }
+  .dpad{ display:grid; grid-template-columns:repeat(3,var(--dp)); grid-template-rows:repeat(3,var(--dp));
          grid-column:1; grid-row:2; justify-self:start }
   .dpad button{ background:#232032; border:1px solid #3a3550; color:var(--ink);
-                font:inherit; font-size:14px; padding:0; cursor:pointer; touch-action:none }
+                font:inherit; font-size:17px; padding:0; cursor:pointer; touch-action:none }
   .dpad button:active, .dpad button.on{ background:var(--amber); color:#15131d }
   .dpad .u{ grid-area:1/2 } .dpad .l{ grid-area:2/1 }
   .dpad .r{ grid-area:2/3 } .dpad .d{ grid-area:3/2 }
   .dpad .c{ grid-area:2/2; background:#1b1826; border-color:#2b2740 }
-  .abtns{ display:flex; gap:12px; align-items:center; grid-column:2; grid-row:2; justify-self:end }
-  .circ{ width:62px; height:62px; border-radius:50%; border:2px solid #3a3550; background:#232032;
+  .abtns{ display:flex; gap:10px; align-items:center; grid-column:2; grid-row:2; justify-self:end }
+  #padPing{ transform:translateY(16px) }
+  #padImp{ transform:translateY(-16px) }
+  .circ{ width:var(--cb); height:var(--cb); border-radius:50%; border:2px solid #3a3550; background:#232032;
          color:var(--dim); font:inherit; font-size:9px; letter-spacing:1px; cursor:pointer;
          touch-action:none }
   .circ.lit.pingb{ border-color:#2f5560; background:#1d2a33; color:#7fe6ff }
   .circ.lit.impb{ border-color:#5a2f60; background:#2b1d33; color:#d08cf0 }
   .circ:active.lit{ filter:brightness(1.6) }
-  .startpill{ grid-column:1 / -1; grid-row:1; justify-self:center;
+  .startpill{ grid-column:1 / -1; grid-row:1; justify-self:center; align-self:start; margin-bottom:4px;
               background:#2a2418; border:1px solid #5a4a2a; color:var(--amber); font:inherit;
               font-size:9px; letter-spacing:1px; padding:11px 14px; border-radius:14px;
               cursor:pointer; touch-action:none; --hold:0%;
@@ -292,6 +296,15 @@
   const $ = id => document.getElementById(id);
 
   const T = 16, COLS = 25, SURFACE = 4, VIEW_H = cvs.height;
+  const WORLD_W = COLS * T;
+  // a phone screen is small, so the camera pushes in and tracks the rig on both axes
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+  const ZOOM = TOUCH ? 1.9 : 1;
+  const viewW = () => cvs.width / ZOOM;
+  const viewH = () => cvs.height / ZOOM;
+  const camTargetX = () => WORLD_W <= viewW() ? 0
+    : Math.max(0, Math.min(WORLD_W - viewW(), p.px + 8 - viewW() / 2));
+  const camTargetY = () => p.py - viewH() * 0.42;
 
   // ---------- tiles ----------
   // rock tiers 1..6 share ids 1..6; ore ids 10..15 map to tier (id-9)
@@ -564,7 +577,7 @@
     if (p.fuel <= 0) { flash('Ping needs a cell.'); return; }
     p.fuel--;
     const y0 = Math.max(0, Math.floor(cam.y / T) - 1);
-    const y1 = Math.ceil((cam.y + VIEW_H) / T) + 1;
+    const y1 = Math.ceil((cam.y + viewH()) / T) + 1;
     let found = 0;
     for (let y = y0; y <= y1; y++)
       for (let x = 0; x < COLS; x++)
@@ -756,7 +769,7 @@
           fuel:fuelMax() };
     parts.length = 0;
     pops.length = 0;
-    cam = { y: p.py - VIEW_H*0.42 };
+    cam = { x: camTargetX(), y: camTargetY() };
     shake = 0; running = true;
     $('workshop').classList.remove('on');
     $('toolModal').hidden = true;
@@ -965,8 +978,10 @@
     lavaAnim += dt;
     if (flashT > 0 && (flashT -= dt) <= 0) $('flash').classList.remove('on');
 
-    cam.y += ((p.py - VIEW_H*0.42) - cam.y) * Math.min(1, dt*7);
+    const k = Math.min(1, dt*7);
+    cam.y += (camTargetY() - cam.y) * k;
     cam.y = Math.max(cam.y, -40);
+    cam.x += (camTargetX() - cam.x) * k;
     hud();
   }
 
@@ -1274,17 +1289,20 @@
     ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, cvs.width, cvs.height);
     const sh = shake > 0 ? (Math.random()*2-1) * shake : 0;
     ctx.save();
-    ctx.translate(sh, -Math.round(cam.y) + sh);
+    ctx.scale(ZOOM, ZOOM);
+    ctx.translate(-Math.round(cam.x) + sh, -Math.round(cam.y) + sh);
 
     if (cam.y < SURFACE*T + 60) {
       const g = ctx.createLinearGradient(0, -80, 0, SURFACE*T);
       g.addColorStop(0, '#241d3a'); g.addColorStop(1, '#4a3a52');
-      ctx.fillStyle = g; ctx.fillRect(0, -240, cvs.width, SURFACE*T + 240);
+      ctx.fillStyle = g; ctx.fillRect(0, -240, WORLD_W, SURFACE*T + 240);
     }
 
     const y0 = Math.max(0, Math.floor(cam.y/T) - 1);
-    const y1 = Math.ceil((cam.y + VIEW_H)/T) + 1;
-    for (let y = y0; y <= y1; y++) for (let x = 0; x < COLS; x++) drawTile(x, y);
+    const y1 = Math.ceil((cam.y + viewH())/T) + 1;
+    const x0 = Math.max(0, Math.floor(cam.x/T) - 1);
+    const x1 = Math.min(COLS - 1, Math.ceil((cam.x + viewW())/T) + 1);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) drawTile(x, y);
 
     drawParts();
 
@@ -1323,15 +1341,15 @@
     const dark = Math.min(.62, Math.max(0, (p.y - SURFACE)/150));
     if (dark > 0) {
       ctx.fillStyle = 'rgba(0,0,0,' + dark + ')';
-      ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+      ctx.fillRect(cam.x-20, cam.y-20, viewW()+40, viewH()+40);
       const lg = ctx.createRadialGradient(p.px+8, p.py+8, 8, p.px+8, p.py+8, 92);
       lg.addColorStop(0, 'rgba(255,225,170,' + dark*.55 + ')');
       lg.addColorStop(1, 'rgba(255,225,170,0)');
-      ctx.fillStyle = lg; ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+      ctx.fillStyle = lg; ctx.fillRect(cam.x-20, cam.y-20, viewW()+40, viewH()+40);
     }
     if (heat > .12) {
       ctx.fillStyle = 'rgba(255,90,30,' + (heat * .22) + ')';
-      ctx.fillRect(0, cam.y-20, cvs.width, VIEW_H+40);
+      ctx.fillRect(cam.x-20, cam.y-20, viewW()+40, viewH()+40);
     }
     drawPops();
     ctx.restore();
@@ -1522,7 +1540,6 @@
   }
   // ---------- touch controls ----------
   // the shell only exists for coarse pointers; desktop keeps keyboard + HUD buttons
-  const TOUCH = matchMedia('(pointer: coarse)').matches;
   if (TOUCH) document.documentElement.classList.add('touch');
 
   const DIR_KEY = { up:'w', down:'s', left:'a', right:'d' };
