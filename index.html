@@ -823,6 +823,7 @@
   // floating payout text that rises off the tile that paid
   let pops = [];
   function pop(x, y, text) {
+    if (MP && MP.poplog) MP.poplog.push(x + ',' + y + '|' + text);   // shown on the phone too
     pops.push({ x: x*T + T/2, y: y*T + 2, text, color: '#f2b134', life: 1.15, max: 1.15 });
     if (pops.length > 14) pops.shift();
   }
@@ -1919,7 +1920,7 @@
     // ---- a controller mirrors its own mine from the seed plus what has been dug ----
     snapshot(slot, others, full) {
       const m = slot.mp;
-      m.log = m.log || []; m.plog = m.plog || [];
+      m.log = m.log || []; m.plog = m.plog || []; m.poplog = m.poplog || [];
       if (full) { m.sent = 0; m.psent = 0; }
       m.seq = (m.seq || 0) + 1;
       const snap = {
@@ -1928,6 +1929,7 @@
         full: !!full,
         cut: m.log.slice(m.sent || 0),
         lit: m.plog.slice(m.psent || 0),
+        pop: m.poplog.slice(m.popsent || 0),      // never replayed on a resync
         dmg: [...slot.dmg.entries()],
         lvl: slot.lvl,
         others: others || [],
@@ -1935,13 +1937,14 @@
                       face:slot.p.face, drilling:!!slot.p.drilling, molten:!!slot.p.molten,
                       burn:slot.p.burn, depth:slot.p.depth } : null,
       };
-      m.sent = m.log.length; m.psent = m.plog.length;
+      m.sent = m.log.length; m.psent = m.plog.length; m.popsent = m.poplog.length;
       return snap;
     },
     resetLog(slot, sharedLog) {
       slot.mp.log = sharedLog ? sharedLog.log : [];
       slot.mp.plog = sharedLog ? sharedLog.plog : [];
-      slot.mp.sent = 0; slot.mp.psent = 0;
+      slot.mp.poplog = [];
+      slot.mp.sent = 0; slot.mp.psent = 0; slot.mp.popsent = 0;
     },
     // returns false when a delta went missing, so the caller can ask for a resync
     applySnapshot(slot, snap) {
@@ -1954,6 +1957,17 @@
       const expect = (slot.mp.rx || 0) + 1;
       if (!fresh && snap.seq !== expect) { slot.mp.rx = snap.seq; return false; }
       slot.mp.rx = snap.seq;
+      if (snap.pop && snap.pop.length && !fresh) {
+        loadSlot(slot);
+        for (const line of snap.pop) {
+          const bar = line.indexOf('|');
+          const [x, y] = line.slice(0, bar).split(',').map(Number);
+          const text = line.slice(bar + 1);
+          burst(x, y, getTile(x, y));            // the ore is still in place right now
+          pop(x, y, text);
+        }
+        saveSlot(slot);
+      }
       for (const line of snap.cut) {
         const i = line.lastIndexOf(':');
         slot.world.set(line.slice(0, i), +line.slice(i + 1));
@@ -1998,6 +2012,12 @@
         paintRobot(ctx, Math.round(g.px), Math.round(g.py), g.dir, g.face, 0, g.color,
                    { drilling:false, burn:0, phase:0 });
       ctx.restore();
+    },
+    agePops(slot, dt) {
+      loadSlot(slot);
+      updatePops(dt);
+      updateParts(dt);
+      saveSlot(slot);
     },
     mobileZoom(slot) {
       return Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * (slot.lvl.size || 0));
@@ -2906,6 +2926,7 @@
       }
       if (!mirror || !mirror.p) return;
       TM.lerpRig(mirror, dt);
+      TM.agePops(mirror, dt);          // payouts and chips live on the phone now
       const cv = TM.canvasEl();
       const view = { x:0, y:0, w:cv.width, h:cv.height };
       const z = TM.mobileZoom(mirror);
