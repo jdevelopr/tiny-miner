@@ -16,6 +16,7 @@
     --good:#5fd08a; --bad:#e2564a; --heat:#ff7a3d;
   }
   *{box-sizing:border-box}
+  [hidden]{ display:none !important }
   body{
     margin:0; min-height:100vh;
     background:radial-gradient(120% 80% at 50% 0%, #1a1726 0%, var(--void) 70%);
@@ -288,6 +289,7 @@
     border-bottom:1px solid var(--line); flex-wrap:wrap }
   .chud .stat b{ font-size:18px }
   .cflash{ margin-left:auto; font-size:10px; color:var(--amber); text-align:right; max-width:48% }
+  .clink{ font-size:10px; color:var(--bad); letter-spacing:1px }
   .cpadhost{ flex:1; min-height:0; display:flex }
   .cpadhost .pad{ visibility:visible !important }
   #cshop{ align-items:flex-start }
@@ -2044,7 +2046,8 @@
       <div class="clockbig"><span class="mtag">DEPLOYING IN</span><b id="msClock">90</b></div>
     </div>
     <div class="slots" id="msSlots"></div>
-    <p class="lnote">Everyone fits their rig on their own phone. The mine reopens when all four are ready.</p>
+    <p class="lnote">Everyone fits their rig on their own phone. The mine reopens when everyone is ready.</p>
+    <div class="lfoot"><button class="layoutBtn wide2" id="msStop" hidden>END MATCH NOW</button></div>
   </div>
 </div>
 
@@ -2063,6 +2066,7 @@
     <div class="stat"><span>Depth</span><b id="chDepth">0m</b></div>
     <div class="stat"><span>This run</span><b id="chRun">$0</b></div>
     <div class="stat"><span>Cells</span><b id="chCells">0</b></div>
+    <div class="clink" id="chLink"></div>
     <div class="cflash" id="chFlash"></div>
   </div>
   <div class="cpadhost" id="cPadHost"></div>
@@ -2124,11 +2128,28 @@
       <p class="hint" id="sHint"></p>
     </div>
     <div class="opt">
+      <span class="mtag">MATCH ENDS</span>
+      <div class="srow">
+        <button class="opt-b" data-set="mode" data-val="rounds">SET ROUNDS</button>
+        <button class="opt-b" data-set="mode" data-val="goal">MONEY GOAL</button>
+        <button class="opt-b" data-set="mode" data-val="endless">ENDLESS</button>
+      </div>
+      <p class="hint" id="mHint"></p>
+    </div>
+    <div class="opt" id="optRounds">
       <span class="mtag">ROUNDS</span>
       <div class="srow">
         <button class="opt-b" data-set="rounds" data-val="3">3</button>
         <button class="opt-b" data-set="rounds" data-val="5">5</button>
         <button class="opt-b" data-set="rounds" data-val="7">7</button>
+      </div>
+    </div>
+    <div class="opt" id="optGoal" hidden>
+      <span class="mtag">FIRST TO BANK</span>
+      <div class="srow">
+        <button class="opt-b" data-set="goal" data-val="5000">$5,000</button>
+        <button class="opt-b" data-set="goal" data-val="15000">$15,000</button>
+        <button class="opt-b" data-set="goal" data-val="50000">$50,000</button>
       </div>
     </div>
     <button class="go" id="sBack">DONE</button>
@@ -2372,7 +2393,7 @@
   // ---------- match state, host side ----------
   const match = {
     code:null,
-    settings: { screen:'individual', rounds:5 },
+    settings: { screen:'individual', mode:'rounds', rounds:5, goal:15000 },
     players: [],                                   // {id, slot, name, color}
   };
   const lobbyPayload = () => ({
@@ -2431,7 +2452,7 @@
     }
     $('lStart').disabled = match.players.length === 0;
     $('lSettings').textContent =
-      match.settings.screen.toUpperCase() + ' SCREEN / ' + match.settings.rounds + ' ROUNDS';
+      match.settings.screen.toUpperCase() + ' SCREEN / ' + endsLine();
   }
 
   function beginHosting() {
@@ -2540,6 +2561,13 @@
   });
 
   // ---------- setup panel ----------
+  const money = n => '$' + n.toLocaleString('en-US');
+  function endsLine() {
+    const st = match.settings;
+    return st.mode === 'rounds'  ? st.rounds + ' ROUNDS'
+         : st.mode === 'goal'    ? 'FIRST TO ' + money(st.goal)
+         :                         'ENDLESS';
+  }
   function renderSetup() {
     document.querySelectorAll('.opt-b').forEach(b => {
       const cur = String(match.settings[b.dataset.set]);
@@ -2548,11 +2576,18 @@
     $('sHint').textContent = match.settings.screen === 'shared'
       ? 'Everyone digs the same mine and can see each other underground.'
       : 'Each player gets their own mine, generated identically, shown side by side.';
+    $('optRounds').hidden = match.settings.mode !== 'rounds';
+    $('optGoal').hidden = match.settings.mode !== 'goal';
+    $('mHint').textContent =
+      match.settings.mode === 'rounds'  ? 'A fixed number of runs, then the biggest bank wins.'
+    : match.settings.mode === 'goal'    ? 'Runs keep coming until someone banks the target.'
+    :                                     'Runs keep coming until the host calls it. Standings show throughout.';
   }
   document.querySelectorAll('.opt-b').forEach(b => {
     b.onclick = () => {
       const v = b.dataset.val;
-      match.settings[b.dataset.set] = b.dataset.set === 'rounds' ? parseInt(v, 10) : v;
+      const numeric = b.dataset.set === 'rounds' || b.dataset.set === 'goal';
+      match.settings[b.dataset.set] = numeric ? parseInt(v, 10) : v;
       renderSetup();
       if (NET.role === 'host') NET.toAll(lobbyPayload());
     };
@@ -2618,17 +2653,28 @@
     TM.resizeCanvas(wide ? 1000 : 1000, 640);
   }
 
+  function matchOver() {
+    const st = match.settings;
+    if (st.mode === 'rounds') return round >= st.rounds;
+    if (st.mode === 'goal') return activePlayers().some(pl => pl.game.bank >= st.goal);
+    return false;                               // endless runs until the host says stop
+  }
   function endRound() {
     document.documentElement.classList.remove('hosting');
     $('workshop').classList.remove('on');       // solo furniture stays shut in a match
     $('toolModal').hidden = true;
     phase = 'shop';
     shopLeft = SHOP_SECONDS;
-    if (round >= match.settings.rounds) return finishMatch();
+    if (matchOver()) return finishMatch();
     show('mshop');
-    $('msRound').textContent = 'ROUND ' + round + ' / ' + match.settings.rounds;
+    const st = match.settings;
+    $('msRound').textContent = st.mode === 'rounds' ? 'ROUND ' + round + ' / ' + st.rounds
+      : st.mode === 'goal' ? 'ROUND ' + round + '  --  FIRST TO ' + money(st.goal)
+      : 'ROUND ' + round;
+    $('msStop').hidden = st.mode === 'rounds';
     activePlayers().forEach(pl => { pl.ready = false; sendShop(pl); });
-    NET.toAll({ t:'phase', phase:'shop', round, rounds: match.settings.rounds });
+    NET.toAll({ t:'phase', phase:'shop', round, rounds: match.settings.rounds,
+                mode: match.settings.mode, goal: match.settings.goal });
     renderShopBoard();
   }
 
@@ -2639,7 +2685,11 @@
     // bank decides it, and when two players tie the deeper run wins
     const board = activePlayers().slice()
       .sort((a, b) => (b.game.bank - a.game.bank) || (b.game.bestEver - a.game.bestEver));
-    $('mdWin').textContent = board.length ? board[0].name + ' WINS' : 'NO ONE WINS';
+    const st = match.settings;
+    $('mdWin').textContent = !board.length ? 'NO ONE WINS'
+      : st.mode === 'goal' && board[0].game.bank >= st.goal
+        ? board[0].name + ' HIT ' + money(st.goal)
+        : board[0].name + ' WINS';
     const wrap = $('mdSlots'); wrap.innerHTML = '';
     board.forEach((pl, i) => {
       const el = document.createElement('div');
@@ -2709,7 +2759,11 @@
           const others = shared ? players.filter(o => o !== pl && o.game.p).map(o => ({
             px:o.game.p.px, py:o.game.p.py, dir:o.game.p.dir, face:o.game.p.face, color:hex(o.color)
           })) : [];
-          const full = pl.needFull; pl.needFull = false;
+          // a full picture every couple of seconds, so a phone can never be
+          // stranded on a delta it missed
+          pl.fullAt = (pl.fullAt || 0) + 1;
+          const full = pl.needFull || pl.fullAt % 25 === 0;
+          pl.needFull = false;
           NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game),
                           snap: TM.snapshot(pl.game, others, full) });
         });
@@ -2804,6 +2858,7 @@
     if (!pl || phase !== 'shop') return;
     pl.ready = true; renderShopBoard();
   });
+  $('msStop').onclick = () => { if (phase === 'shop') finishMatch(); };
   $('mdAgain').onclick = () => {
     phase = 'lobby'; cancelAnimationFrame(raf); raf = 0;
     match.players.forEach(pl => { pl.game = null; pl.ready = false; });
@@ -2816,6 +2871,7 @@
   let mirror = null, camSmooth = null, myRaf = 0, viewClock = 0, shopClock = 0, ghosts = [];
   let lastFrame = 0;
 
+  addEventListener('resize', () => { if ($('cplay').classList.contains('on')) fitControllerCanvas(); });
   function fitControllerCanvas() {
     const host = $('cViewHost');
     const w = Math.max(240, Math.floor(host.clientWidth));
@@ -2830,6 +2886,13 @@
     // numbers on the phone and the numbers on the big screen never drift apart
     if ($('cplay').classList.contains('on')) {
       if (viewClock > 0) { viewClock = Math.max(0, viewClock - dt); $('chTime').textContent = viewClock.toFixed(1); }
+      // if the host goes quiet the player should see that, not a frozen mine
+      const quiet = performance.now() - lastView;
+      $('chLink').textContent = quiet > 1200 ? 'RECONNECTING' : '';
+      if (quiet > 1500 && performance.now() - resyncAsked > 1500) {
+        resyncAsked = performance.now();
+        NET.send({ t:'resync' });
+      }
       if (!mirror || !mirror.p) return;
       TM.lerpRig(mirror, dt);
       const cv = TM.canvasEl();
@@ -2866,8 +2929,16 @@
       TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
       if (!mirror) mirror = TM.makeSlot();
       camSmooth = null; ghosts = [];
-      requestAnimationFrame(() => { fitControllerCanvas(); startControllerLoop(); });
+      requestAnimationFrame(() => {
+        fitControllerCanvas();
+        // one more pass after layout settles, then on every orientation change
+        setTimeout(fitControllerCanvas, 120);
+        startControllerLoop();
+      });
     } else if (msg.phase === 'shop') {
+      goalLine = msg.mode === 'goal' ? 'Race to $' + (msg.goal || 0).toLocaleString('en-US') + '.'
+               : msg.mode === 'endless' ? 'Endless match -- the host calls it.'
+               : 'Round ' + msg.round + ' of ' + msg.rounds + '.';
       show('cshop');
       startControllerLoop();
     } else if (msg.phase === 'done') {
@@ -2885,7 +2956,9 @@
   NET.on('begin', () => {});
   NET.on('phase', controllerPhase);
   let resyncAsked = -Infinity;   // never suppress the first request
+  let lastView = 0;
   NET.on('view', m => {
+    lastView = performance.now();
     if (!mirror) mirror = TM.makeSlot();
     const ok = TM.applySnapshot(mirror, m.snap);
     if (!ok) {
@@ -2909,13 +2982,14 @@
   NET.on('ended', m => {
     $('chFlash').textContent = m.molten ? 'RIG LOST -- half the haul gone' : 'SURFACED with $' + m.kept;
   });
+  let goalLine = '';
   NET.on('clock', m => { shopClock = m.left; $('csClock').textContent = Math.ceil(m.left); });
   NET.on('shop', m => {
     myShop = m;
     shopClock = m.left;
     $('csBank').textContent = '$' + m.shop.bank;
     $('csClock').textContent = m.left;
-    $('csNote').textContent = m.shop.note;
+    $('csNote').textContent = (goalLine ? goalLine + '  ' : '') + m.shop.note;
     const wrap = $('csCards'); wrap.innerHTML = '';
     m.shop.cards.forEach(c => {
       const el = document.createElement('div');
