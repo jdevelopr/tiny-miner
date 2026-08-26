@@ -281,6 +281,9 @@
 
   /* controller: a HUD strip with the existing shell bolted underneath */
   #cplay{ padding:0; align-items:stretch; flex-direction:column }
+  .cviewhost{ width:100%; padding:6px 6px 0; display:flex }
+  .cviewhost canvas{ width:100%; height:auto; display:block; image-rendering:pixelated;
+    border:2px solid #05040a; background:#000 }
   .chud{ display:flex; gap:14px; align-items:center; padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
     border-bottom:1px solid var(--line); flex-wrap:wrap }
   .chud .stat b{ font-size:18px }
@@ -632,7 +635,10 @@
     if (t === undefined) { t = genTile(x, y); world.set(k, t); }
     return t;
   }
-  const setTile = (x, y, v) => world.set(key(x, y), v);
+  const setTile = (x, y, v) => {
+    world.set(key(x, y), v);
+    if (MP && MP.log) MP.log.push(key(x, y) + ':' + v);   // mirrored to that player's phone
+  };
   const solid   = (x, y) => isSolidId(getTile(x, y));
 
   function revealed(x, y) {
@@ -656,6 +662,7 @@
   // ---------- state ----------
   // ore uncovered by a seismic ping stays on the map for the rest of the run
   let pinged = new Set();
+  function litAdd(k) { pinged.add(k); if (MP && MP.plog) MP.plog.push(k); }
 
   // anything the radar sweeps past -- ore or lava -- is logged the way a ping logs it,
   // so the map fills in behind you instead of going dark once you move on
@@ -670,9 +677,9 @@
         if (pinged.has(k)) continue;
         const id = getTile(x, y);
         if (id === LAVA) {
-          if (Math.abs(dx) + Math.abs(dy) <= 3) pinged.add(k);
+          if (Math.abs(dx) + Math.abs(dy) <= 3) litAdd(k);
         } else if (id >= ORE_BASE && r && dx*dx + dy*dy <= r*r) {
-          pinged.add(k);
+          litAdd(k);
         }
       }
   }
@@ -686,7 +693,7 @@
     let found = 0;
     for (let y = y0; y <= y1; y++)
       for (let x = 0; x < COLS; x++)
-        if (getTile(x, y) >= ORE_BASE && !pinged.has(key(x, y))) { pinged.add(key(x, y)); found++; }
+        if (getTile(x, y) >= ORE_BASE && !pinged.has(key(x, y))) { litAdd(key(x, y)); found++; }
     // shockwave
     for (let i = 0; i < 26; i++) {
       const a = (i / 26) * Math.PI * 2;
@@ -1902,6 +1909,67 @@
       cvs.style.aspectRatio = w + '/' + h;
       VIEW = { x:0, y:0, w, h };
     },
+
+    // ---- a controller mirrors its own mine from the seed plus what has been dug ----
+    snapshot(slot, others) {
+      const m = slot.mp;
+      m.log = m.log || []; m.plog = m.plog || [];
+      const snap = {
+        seed: slot.seed,
+        cut: m.log.slice(m.sent || 0),
+        lit: m.plog.slice(m.psent || 0),
+        dmg: [...slot.dmg.entries()],
+        lvl: slot.lvl,
+        others: others || [],
+        p: slot.p ? { px:slot.p.px, py:slot.p.py, x:slot.p.x, y:slot.p.y, dir:slot.p.dir,
+                      face:slot.p.face, drilling:!!slot.p.drilling, molten:!!slot.p.molten,
+                      burn:slot.p.burn, depth:slot.p.depth } : null,
+      };
+      m.sent = m.log.length; m.psent = m.plog.length;
+      return snap;
+    },
+    resetLog(slot, sharedLog) {
+      slot.mp.log = sharedLog ? sharedLog.log : [];
+      slot.mp.plog = sharedLog ? sharedLog.plog : [];
+      slot.mp.sent = 0; slot.mp.psent = 0;
+    },
+    applySnapshot(slot, snap) {
+      if (slot.seed !== snap.seed) {          // a new round: start the mirror over
+        slot.world = new Map(); slot.dmg = new Map(); slot.pinged = new Set();
+        slot.seed = snap.seed;
+      }
+      for (const line of snap.cut) {
+        const i = line.lastIndexOf(':');
+        slot.world.set(line.slice(0, i), +line.slice(i + 1));
+      }
+      for (const k of snap.lit) slot.pinged.add(k);
+      slot.dmg = new Map(snap.dmg);
+      Object.assign(slot.lvl, snap.lvl);
+      if (snap.p) {
+        slot.p = Object.assign({
+          moving:false, mt:0, dur:.12, tx:0, ty:0, fx:0, fy:0, prog:0, chunks:0,
+          run:0, best:0, t:0, hover:false, fuel:0,
+        }, slot.p || {}, snap.p);
+        slot.p.drilling = snap.p.drilling ? 'x' : null;
+      }
+    },
+    // the other rigs in a shared mine, drawn as plain sprites
+    paintGhosts(view, zoomN, camRef, list) {
+      if (!list || !list.length) return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+      ctx.translate(view.x, view.y);
+      ctx.scale(zoomN, zoomN);
+      ctx.translate(-Math.round(camRef.x), -Math.round(camRef.y));
+      for (const g of list)
+        paintRobot(ctx, Math.round(g.px), Math.round(g.py), g.dir, g.face, 0, g.color,
+                   { drilling:false, burn:0, phase:0 });
+      ctx.restore();
+    },
+    mobileZoom(slot) {
+      return Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * (slot.lvl.size || 0));
+    },
+    canvasEl() { return cvs; },
     camOf(slot) { return slot.cam; },
     setHooks(input, action) { inputHook = input; actionHook = action; },
     controllerMode(on) { document.documentElement.classList.toggle('playing', !!on); },
@@ -1956,6 +2024,7 @@
 </div>
 
 <div class="screen" id="cplay">
+  <div class="cviewhost" id="cViewHost"></div>
   <div class="chud">
     <div class="stat clock"><span>Time</span><b id="chTime">60.0</b></div>
     <div class="stat"><span>Depth</span><b id="chDepth">0m</b></div>
@@ -2002,6 +2071,7 @@
     <div class="slots" id="lSlots"></div>
     <p class="lnote" id="lNote">Scan the code with a phone to join.</p>
     <div class="lfoot">
+      <button class="layoutBtn wide2" id="lBack">BACK</button>
       <button class="layoutBtn wide2" id="lSetup">SETUP</button>
       <span class="lsettings" id="lSettings"></span>
       <button class="go" id="lStart" disabled>START MATCH</button>
@@ -2454,6 +2524,19 @@
       if (NET.role === 'host') NET.toAll(lobbyPayload());
     };
   });
+  // leaving the lobby closes the room, so anyone who joined is told to go
+  $('lBack').onclick = () => {
+    NET.toAll({ t:'denied', why:'The host closed the room.' });
+    try { NET.conns.forEach(c => c.close()); } catch (e) {}
+    NET.conns.clear();
+    try { if (NET.peer) NET.peer.destroy(); } catch (e) {}
+    NET.peer = null; NET.role = null;
+    match.code = null; match.players.length = 0;
+    $('lCode').textContent = '----';
+    $('lUrl').textContent = '';
+    $('lNote').textContent = 'Scan the code with a phone to join.';
+    show('menu');
+  };
   $('lSetup').onclick = () => { show('setup'); renderSetup(); };
   $('sBack').onclick = () => { show('lobby'); renderSlots(); };
 
@@ -2482,8 +2565,10 @@
     const seed = Math.floor(Math.random() * 1e6);
     const shared = match.settings.screen === 'shared' ? TM.freshShared() : null;
     const spread = [12, 6, 18, 2];
+    const sharedLog = shared ? { log:[], plog:[] } : null;
     activePlayers().forEach((pl, i) => {
       TM.startRun(pl.game, seed, shared, shared ? spread[i % 4] : 12);
+      TM.resetLog(pl.game, sharedLog);         // phones replay this log against the seed
       pl.done = false; pl.ready = false;
     });
     phase = 'run';
@@ -2502,6 +2587,8 @@
 
   function endRound() {
     document.documentElement.classList.remove('hosting');
+    $('workshop').classList.remove('on');       // solo furniture stays shut in a match
+    $('toolModal').hidden = true;
     phase = 'shop';
     shopLeft = SHOP_SECONDS;
     if (round >= match.settings.rounds) return finishMatch();
@@ -2567,7 +2654,7 @@
   }
 
   // ---------- the frame ----------
-  let hudAccum = 0;
+  let hudAccum = 0, clockAccum = 0;
   function tick(now) {
     raf = requestAnimationFrame(tick);
     const dt = Math.min(0.05, (now - lastT) / 1000);
@@ -2582,14 +2669,25 @@
       });
       drawMatch(players);
       hudAccum += dt;
-      if (hudAccum > 0.1) {
+      if (hudAccum > 0.08) {
         hudAccum = 0;
-        players.forEach(pl => NET.to(pl.id, { t:'hud', hud: TM.hudFor(pl.game) }));
+        const shared = match.settings.screen === 'shared';
+        players.forEach(pl => {
+          const others = shared ? players.filter(o => o !== pl && o.game.p).map(o => ({
+            px:o.game.p.px, py:o.game.p.py, dir:o.game.p.dir, face:o.game.p.face, color:hex(o.color)
+          })) : [];
+          NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game), snap: TM.snapshot(pl.game, others) });
+        });
       }
       if (players.every(pl => pl.done)) endRound();
     } else if (phase === 'shop') {
       shopLeft -= dt;
       renderShopBoard();
+      clockAccum += dt;
+      if (clockAccum > 0.25) {           // phones run their own countdown and snap to this
+        clockAccum = 0;
+        NET.toAll({ t:'clock', left: Math.max(0, shopLeft) });
+      }
       if (shopLeft <= 0 || activePlayers().every(pl => pl.ready)) { round++; beginRound(); }
     }
   }
@@ -2674,16 +2772,61 @@
   };
 
   // ================= controller side =================
+  // ---------- controller: its own live view of its own mine ----------
+  let mirror = null, camSmooth = null, myRaf = 0, viewClock = 0, shopClock = 0, ghosts = [];
+  let lastFrame = 0;
+
+  function fitControllerCanvas() {
+    const host = $('cViewHost');
+    const w = Math.max(240, Math.floor(host.clientWidth));
+    const h = Math.max(200, Math.floor(host.clientHeight));
+    TM.resizeCanvas(w, h);
+  }
+  function controllerFrame(now) {
+    myRaf = requestAnimationFrame(controllerFrame);
+    const dt = Math.min(0.05, (now - lastFrame) / 1000);
+    lastFrame = now;
+    // both clocks run locally and get snapped whenever the host speaks, so the
+    // numbers on the phone and the numbers on the big screen never drift apart
+    if ($('cplay').classList.contains('on')) {
+      if (viewClock > 0) { viewClock = Math.max(0, viewClock - dt); $('chTime').textContent = viewClock.toFixed(1); }
+      if (!mirror || !mirror.p) return;
+      const cv = TM.canvasEl();
+      const view = { x:0, y:0, w:cv.width, h:cv.height };
+      const z = TM.mobileZoom(mirror);
+      const target = TM.trackTarget(mirror);
+      if (!camSmooth) camSmooth = { x:target.x, y:target.y };
+      camSmooth.x += (target.x - camSmooth.x) * Math.min(1, dt * 9);
+      camSmooth.y += (Math.max(-40, target.y) - camSmooth.y) * Math.min(1, dt * 9);
+      TM.setCam(mirror, camSmooth.x, camSmooth.y);
+      TM.paint(mirror, view, z);
+      TM.paintGhosts(view, z, camSmooth, ghosts);
+    } else if ($('cshop').classList.contains('on')) {
+      if (shopClock > 0) { shopClock = Math.max(0, shopClock - dt); $('csClock').textContent = Math.ceil(shopClock); }
+    }
+  }
+  function startControllerLoop() {
+    if (myRaf) return;
+    lastFrame = performance.now();
+    myRaf = requestAnimationFrame(controllerFrame);
+  }
+
   let myShop = null;
   function controllerPhase(msg) {
     if (msg.phase === 'run') {
       show('cplay');
-      const host = $('cPadHost');
-      if (TM.padEl().parentNode !== host) host.appendChild(TM.padEl());
+      const padHost = $('cPadHost');
+      if (TM.padEl().parentNode !== padHost) padHost.appendChild(TM.padEl());
+      const viewHost = $('cViewHost');
+      if (TM.canvasEl().parentNode !== viewHost) viewHost.appendChild(TM.canvasEl());
       TM.controllerMode(true);
       TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
+      if (!mirror) mirror = TM.makeSlot();
+      camSmooth = null; ghosts = [];
+      requestAnimationFrame(() => { fitControllerCanvas(); startControllerLoop(); });
     } else if (msg.phase === 'shop') {
       show('cshop');
+      startControllerLoop();
     } else if (msg.phase === 'done') {
       show('ctrl');
       $('cForm').hidden = true; $('cWait').hidden = false;
@@ -2698,8 +2841,15 @@
   }
   NET.on('begin', () => {});
   NET.on('phase', controllerPhase);
+  NET.on('view', m => {
+    if (!mirror) mirror = TM.makeSlot();
+    TM.applySnapshot(mirror, m.snap);
+    ghosts = m.snap.others || [];
+    NET.fire('hud', { t:'hud', hud: m.hud });
+  });
   NET.on('hud', m => {
     const h = m.hud;
+    viewClock = h.t;                    // snap the local countdown to the host's clock
     $('chTime').textContent = h.t.toFixed(1);
     $('chDepth').textContent = h.depth + 'm';
     $('chRun').textContent = '$' + h.run;
@@ -2710,8 +2860,10 @@
   NET.on('ended', m => {
     $('chFlash').textContent = m.molten ? 'RIG LOST -- half the haul gone' : 'SURFACED with $' + m.kept;
   });
+  NET.on('clock', m => { shopClock = m.left; $('csClock').textContent = Math.ceil(m.left); });
   NET.on('shop', m => {
     myShop = m;
+    shopClock = m.left;
     $('csBank').textContent = '$' + m.shop.bank;
     $('csClock').textContent = m.left;
     $('csNote').textContent = m.shop.note;
