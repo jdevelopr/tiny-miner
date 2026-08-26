@@ -217,6 +217,82 @@
   .mcard h2{ margin:0; font-size:16px; letter-spacing:1px; font-weight:600; color:var(--amber) }
   .mcard p{ margin:0; font-size:10px; color:var(--dim); line-height:1.7 }
   .mcard .go{ margin-top:4px }
+  /* ---------- multiplayer screens ---------- */
+  .screen{ position:fixed; inset:0; z-index:20; display:none; background:var(--void);
+    align-items:center; justify-content:center; padding:24px; overflow-y:auto }
+  .screen.on{ display:flex }
+  .scard{ background:#151222; border:2px solid var(--line); padding:26px 28px; max-width:400px; width:100%;
+    display:flex; flex-direction:column; gap:14px; text-align:center; align-items:center }
+  .scard.wide{ max-width:460px }
+  .scard h1{ margin:0; font-size:26px; letter-spacing:1px; font-weight:600; color:var(--amber) }
+  .scard h2{ margin:0; font-size:16px; letter-spacing:1px; font-weight:600 }
+  .scard p{ margin:0; font-size:10px; color:var(--dim); line-height:1.7 }
+  .srow{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center }
+  .go.alt{ background:#2b1d33; color:#d08cf0; border:1px solid #5a2f60 }
+  .go.alt:hover{ background:#3d2647 }
+  .hint{ min-height:1.2em; color:var(--dim); font-size:10px }
+  .opt{ width:100%; display:flex; flex-direction:column; gap:7px; align-items:center }
+  .opt-b{ background:#1b1826; border:1px solid var(--line); color:var(--dim); font:inherit;
+    font-size:10px; letter-spacing:1px; padding:11px 16px; cursor:pointer }
+  .opt-b.on{ border-color:var(--amber); color:var(--amber); background:#2a2418 }
+
+  .lwrap{ width:min(96vw,900px); display:flex; flex-direction:column; gap:16px }
+  .lhead{ display:flex; gap:20px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:14px }
+  .lhead h1{ margin:2px 0 0; font-size:52px; letter-spacing:6px; color:var(--amber); font-weight:600 }
+  .lurl{ margin:4px 0 0; font-size:10px; color:var(--dim); word-break:break-all }
+  .lqr{ margin-left:auto; width:150px; height:150px; image-rendering:pixelated; background:#fff; padding:5px }
+  .slots{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+  .slot{ border:2px dashed var(--line); background:#141120; min-height:210px; display:flex;
+    flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:14px }
+  .slot.filled{ border-style:solid }
+  .slot canvas{ image-rendering:pixelated; width:76px; height:76px }
+  .slot b{ font-size:13px; letter-spacing:1px }
+  .slot span{ font-size:10px; color:var(--dim); letter-spacing:1px }
+  .lnote{ margin:0; font-size:10px; color:var(--dim); text-align:center }
+  .lfoot{ display:flex; align-items:center; gap:14px; border-top:1px solid var(--line); padding-top:14px }
+  .lsettings{ font-size:10px; color:var(--dim); letter-spacing:1px }
+  .layoutBtn.wide2{ display:inline-block; position:static; background:#1b1826; border:1px solid var(--line);
+    color:var(--dim); font:inherit; font-size:10px; letter-spacing:1px; padding:11px 14px; cursor:pointer }
+
+  .fld{ width:100%; background:#0f0d18; border:1px solid var(--line); color:var(--ink);
+    font:inherit; font-size:16px; letter-spacing:3px; padding:12px; text-align:center; text-transform:uppercase }
+  .fld:focus{ outline:none; border-color:var(--amber) }
+  .swatches{ display:flex; gap:12px; justify-content:center }
+  .sw{ width:46px; height:46px; border:2px solid var(--line); background:#1b1826; cursor:pointer; padding:0 }
+  .sw i{ display:block; width:100%; height:100%; }
+  .sw.on{ border-color:var(--ink) }
+  .sw:disabled{ opacity:.25; cursor:not-allowed }
+  .crig{ width:104px; height:104px; image-rendering:pixelated }
+  @media (max-width:720px){
+    .lhead{ flex-direction:column; align-items:flex-start }
+    .lqr{ margin-left:0; align-self:center }
+    .slots{ grid-template-columns:repeat(2,1fr) }
+  }
+  /* while the host is running a match the solo chrome steps out of the way */
+  html.hosting .hud, html.hosting .legend, html.hosting .timebar{ display:none }
+  html.hosting .shell{ border-color:#3a3550 }
+  html.hosting body{ justify-content:center }
+  .clockbig{ margin-left:auto; text-align:right }
+  .clockbig b{ display:block; font-size:44px; color:var(--amber); font-variant-numeric:tabular-nums }
+  .slot .money{ font-size:20px; color:var(--good); font-variant-numeric:tabular-nums }
+  .slot .rdy{ font-size:10px; letter-spacing:1px; color:var(--dim) }
+  .slot .rdy.on{ color:var(--good) }
+  .slot .rank{ font-size:10px; color:var(--dim); letter-spacing:1px }
+
+  /* controller: a HUD strip with the existing shell bolted underneath */
+  #cplay{ padding:0; align-items:stretch; flex-direction:column }
+  .chud{ display:flex; gap:14px; align-items:center; padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+    border-bottom:1px solid var(--line); flex-wrap:wrap }
+  .chud .stat b{ font-size:18px }
+  .cflash{ margin-left:auto; font-size:10px; color:var(--amber); text-align:right; max-width:48% }
+  .cpadhost{ flex:1; min-height:0; display:flex }
+  .cpadhost .pad{ visibility:visible !important }
+  #cshop{ align-items:flex-start }
+  .cshopcard{ max-width:none; text-align:left; align-items:stretch; gap:12px }
+  .cshead{ display:flex; align-items:flex-end; gap:12px }
+  .cshead h1{ margin:0; font-size:26px; color:var(--good) }
+  .cshead .clockbig b{ font-size:30px }
+  .cscards{ display:flex; flex-direction:column; gap:8px }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
 </style>
 </head>
@@ -246,7 +322,7 @@
     <div class="timebar"><i id="timebar"></i></div>
   </div>
 
-  <div class="title on" id="title">
+  <div class="title" id="title">
     <h1>TINY MINER</h1>
     <p>Sixty seconds underground. Ore hides inside the rock and only shows<br>
        once you cut alongside it. Lava cannot be drilled -- open a tile beside<br>
@@ -318,15 +394,18 @@
   const $ = id => document.getElementById(id);
 
   const T = 16, COLS = 25, SURFACE = 4, VIEW_H = cvs.height;
+  // in multiplayer the same renderer paints into a column, so the viewport is data
+  let VIEW = { x:0, y:0, w:cvs.width, h:cvs.height };
   const WORLD_W = COLS * T;
   // a phone screen is small, so the camera pushes in and tracks the rig on both axes
   const TOUCH = matchMedia('(pointer: coarse)').matches;
   // starts tight so a small rig is readable, then pulls back a step per drill-size
   // level until the whole shaft is in frame again
   const ZOOM_NEAR = 1.9, ZOOM_FAR = 1.0, ZOOM_STEP = 0.075;
-  const zoom = () => TOUCH ? Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * lvl.size) : 1;
-  const viewW = () => cvs.width / zoom();
-  const viewH = () => cvs.height / zoom();
+  const zoom = () => MP ? (MP.zoom || 1)
+    : TOUCH ? Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * lvl.size) : 1;
+  const viewW = () => VIEW.w / zoom();
+  const viewH = () => VIEW.h / zoom();
   const camTargetX = () => WORLD_W <= viewW() ? 0
     : Math.max(0, Math.min(WORLD_W - viewW(), p.px + 8 - viewW() / 2));
   const camTargetY = () => p.py - viewH() * 0.42;
@@ -395,7 +474,7 @@
            'three tiles, banking any ore caught in it. Later tiers widen the blast to seven.',
   };
   const ARTI_SCRAP = 260;            // a spare piece for a finished tool is just salvage
-  const found = { climb:0, siphon:0, ping:0, implode:0 };
+  let found = { climb:0, siphon:0, ping:0, implode:0 };
 
   const isOre   = id => id >= ORE_BASE && id < ARTI_BASE;
   const isArti  = id => id >= ARTI_BASE;
@@ -454,7 +533,7 @@
       desc:l => l ? 'PING or SPACE. 1 cell lights every ore on screen, for good.'
                   : 'Pulses the rock. Ore it finds stays visible for the rest of the run.' },
   ];
-  const lvl = { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0, implode:0 };
+  let lvl = { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0, implode:0 };
   // size and market multiply everything else, so they climb faster
   const costOf = (t, l) => Math.round(t.base * Math.pow(t.rate || 1.65, l));
 
@@ -537,7 +616,8 @@
     if (depth >= ARTI_MIN_DEPTH) {
       for (let i = 0; i < ARTI_IDS.length; i++) {
         const id = ARTI_IDS[i], a = ARTI[id];
-        if (found[a.key] >= a.need) continue;
+        // in a match the map is shared ground truth, so it never thins out per player
+        if (!MP && found[a.key] >= a.need) continue;
         if (hash(x, y, 41 + i * 7 + seed) < ARTI_CHANCE) return id;
       }
     }
@@ -575,7 +655,7 @@
 
   // ---------- state ----------
   // ore uncovered by a seismic ping stays on the map for the rest of the run
-  const pinged = new Set();
+  let pinged = new Set();
 
   // anything the radar sweeps past -- ore or lava -- is logged the way a ping logs it,
   // so the map fills in behind you instead of going dark once you move on
@@ -648,6 +728,9 @@
   }
 
   let p, cam, shake = 0, flashT = 0, running = false, lavaAnim = 0, animT = 0;
+  // when MP is set this engine instance is one player inside a match, so anything
+  // that writes to the single-player DOM is redirected or skipped
+  let MP = null;
 
   // ---------- chunks + particles ----------
   // every tile is treated as a 3x3 grid of chunks; drilling eats them one at a time
@@ -655,11 +738,11 @@
   const chunkOrder = (x, y) =>
     [0,1,2,3,4,5,6,7,8].sort((a, b) => hash(x*9+a, y, 55) - hash(x*9+b, y, 55));
 
-  const parts = [];
+  let parts = [];
   const MAX_PARTS = 320;
 
   // chunk damage lives on the world, not the player, so a half-cut tile stays half-cut
-  const dmg = new Map();
+  let dmg = new Map();
   const getDmg = (x, y) => dmg.get(key(x, y)) || 0;
 
   // add chunk damage; returns true if the tile came apart
@@ -726,7 +809,7 @@
   }
 
   // floating payout text that rises off the tile that paid
-  const pops = [];
+  let pops = [];
   function pop(x, y, text) {
     pops.push({ x: x*T + T/2, y: y*T + 2, text, color: '#f2b134', life: 1.15, max: 1.15 });
     if (pops.length > 14) pops.shift();
@@ -796,14 +879,16 @@
     pops.length = 0;
     cam = { x: camTargetX(), y: camTargetY() };
     shake = 0; running = true;
-    $('workshop').classList.remove('on');
-    $('toolModal').hidden = true;
-    document.documentElement.classList.add('playing');
+    if (!MP) {
+      $('workshop').classList.remove('on');
+      $('toolModal').hidden = true;
+      document.documentElement.classList.add('playing');
+    }
     flash('Deploying.');
     hud();
   }
 
-  const keys = {};
+  let keys = {};
   // one hold of UP does one job: it either cuts the rock overhead or it climbs.
   // drilling upward latches this, so breaking through never spends a cell by surprise.
   let upSpent = false;
@@ -828,7 +913,11 @@
     (keys['s']||keys['arrowdown'])  ? 'down'  :
     (keys['w']||keys['arrowup'])    ? 'up'    : null;
 
-  function flash(t) { $('flash').textContent = t; $('flash').classList.add('on'); flashT = 2; }
+  function flash(t) {
+    flashT = 2;
+    if (MP) { MP.flash = t; return; }          // the phone shows it instead
+    $('flash').textContent = t; $('flash').classList.add('on');
+  }
 
   // ---------- drilling ----------
   function breakTile(x, y, headOn) {
@@ -1011,6 +1100,7 @@
   }
 
   function hud() {
+    if (MP) return;
     const low = p.t < 10;
     $('clock').textContent = p.t.toFixed(1);
     $('clockBox').classList.toggle('low', low);
@@ -1311,7 +1401,7 @@
   }
 
   function render() {
-    ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, VIEW.w, VIEW.h);
     const sh = shake > 0 ? (Math.random()*2-1) * shake : 0;
     ctx.save();
     ctx.scale(zoom(), zoom());
@@ -1385,6 +1475,7 @@
 
   let bayAnim = 0;
   function drawBay() {
+    if (MP) return;
     bayCtx.fillStyle = '#181425'; bayCtx.fillRect(0, 0, 52, 52);
     bayCtx.fillStyle = '#221d33';
     for (let i = 0; i < 52; i += 4) bayCtx.fillRect(0, i, 52, 1);
@@ -1412,6 +1503,7 @@
   }
 
   function renderTrees() {
+    if (MP) return;
     const wrap = $('trees'), toolWrap = $('tools');
     wrap.innerHTML = ''; toolWrap.innerHTML = '';
     let anyTool = false;
@@ -1469,8 +1561,9 @@
   }
 
   // a queue, because two sets can complete on the same run
-  const toolQueue = [];
+  let toolQueue = [];
   function showToolModal() {
+    if (MP) return;   // the host announces it on the big screen
     if (!toolQueue.length) { $('toolModal').hidden = true; return; }
     const t = toolQueue[0];
     const id = ARTI_IDS.find(i => ARTI[i].key === t.key);
@@ -1505,12 +1598,17 @@
 
   function endRun(molten, early) {
     running = false;
-    document.documentElement.classList.remove('playing');
-    cancelHold();
     p.molten = !!molten;
     const kept = molten ? Math.floor(p.run / 2) : p.run;
     bank += kept;
     bestEver = Math.max(bestEver, p.best);
+    if (MP) {
+      // the match runner takes it from here: assemble, then report to the host
+      MP.ended = { molten:!!molten, early:!!early, kept, fitted: assemble() };
+      return;
+    }
+    document.documentElement.classList.remove('playing');
+    cancelHold();
     hud();
     $('wTitle').textContent = molten ? 'RIG LOST' : early ? 'SURFACED' : 'RECOVERED';
     $('wSub').innerHTML = molten
@@ -1547,7 +1645,7 @@
     holdRaf = requestAnimationFrame(holdTick);
   }
   function startHold() {
-    if (!running || holdFrom) return;
+    if ((!running && !actionHook) || holdFrom) return;
     holdFrom = performance.now();
     holdTick();
   }
@@ -1560,6 +1658,7 @@
     });
   }
   function surface() {
+    if (actionHook) return actionHook('surface');
     if (!running) return;
     endRun(false, true);
   }
@@ -1582,9 +1681,13 @@
     applyLayout();
   };
 
+  // a controller reuses every one of these buttons, it just posts them instead
+  let inputHook = null, actionHook = null;
   const DIR_KEY = { up:'w', down:'s', left:'a', right:'d' };
   const TAP_MIN = 130;                          // a tap is held this long even if you let go sooner
   function padDir(dir, on, el) {
+    if (el) el.classList.toggle('on', on);
+    if (inputHook) { inputHook(dir, on); return; }
     const k = DIR_KEY[dir];
     keys[k] = on;
     if (dir === 'up' && !on) upSpent = false;   // releasing up is a fresh intent
@@ -1610,8 +1713,16 @@
     ['pointerup','pointercancel','pointerleave'].forEach(ev => btn.addEventListener(ev, up));
     btn.addEventListener('contextmenu', e => e.preventDefault());
   });
-  $('padPing').addEventListener('pointerdown', e => { e.preventDefault(); seismicPing(); });
-  $('padImp').addEventListener('pointerdown', e => { e.preventDefault(); implode(); });
+  $('padPing').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (actionHook) return actionHook('ping');
+    seismicPing();
+  });
+  $('padImp').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (actionHook) return actionHook('implode');
+    implode();
+  });
 
   const eb = $('endBtn');
   eb.addEventListener('pointerdown', e => { e.preventDefault(); startHold(); });
@@ -1628,6 +1739,187 @@
 
   // boot to the title card; the workshop only opens between runs
   $('playBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
+
+  // ================= multiplayer engine API =================
+  // One module, many players: every mutable piece of a run lives in a slot that
+  // gets swapped into the engine's globals for the duration of a step or a paint.
+  function blankLvl() {
+    return { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0,
+             fuel:0, climb:0, siphon:0, ping:0, implode:0 };
+  }
+  function makeSlot() {
+    return {
+      world:new Map(), dmg:new Map(), pinged:new Set(), seed:1,
+      p:null, cam:{ x:0, y:0 }, parts:[], pops:[], keys:{},
+      lvl:blankLvl(), found:{ climb:0, siphon:0, ping:0, implode:0 },
+      bank:0, bestEver:0, shake:0, flashT:0, running:false,
+      lavaAnim:0, animT:0, upSpent:false, toolQueue:[],
+      mp:{ flash:'', ended:null, zoom:1 }, acts:[],
+    };
+  }
+  function loadSlot(s) {
+    world = s.world; dmg = s.dmg; pinged = s.pinged; seed = s.seed;
+    p = s.p; cam = s.cam; parts = s.parts; pops = s.pops; keys = s.keys;
+    lvl = s.lvl; found = s.found; bank = s.bank; bestEver = s.bestEver;
+    shake = s.shake; flashT = s.flashT; running = s.running;
+    lavaAnim = s.lavaAnim; animT = s.animT; upSpent = s.upSpent;
+    toolQueue = s.toolQueue; MP = s.mp;
+  }
+  function saveSlot(s) {
+    s.world = world; s.dmg = dmg; s.pinged = pinged; s.seed = seed;
+    s.p = p; s.cam = cam; s.parts = parts; s.pops = pops; s.keys = keys;
+    s.lvl = lvl; s.found = found; s.bank = bank; s.bestEver = bestEver;
+    s.shake = shake; s.flashT = flashT; s.running = running;
+    s.lavaAnim = lavaAnim; s.animT = animT; s.upSpent = upSpent;
+    s.toolQueue = toolQueue;
+    MP = null;              // leaving a slot hands the DOM back to solo mode
+  }
+
+  const ENGINE = {
+    T, COLS, WORLD_W, RUN_TIME, TREES, ARTI_NEED, costOf: (t, l) => costOf(t, l),
+    makeSlot,
+
+    // deal a fresh run. shared passes the same three collections to everyone.
+    startRun(slot, seedVal, shared, spawnCol) {
+      loadSlot(slot);
+      newRun();
+      seed = seedVal;
+      if (shared) { world = shared.world; dmg = shared.dmg; pinged = shared.pinged; }
+      if (spawnCol != null) {
+        p.x = p.tx = spawnCol; p.px = p.fx = spawnCol * T;
+        cam = { x: camTargetX(), y: camTargetY() };
+      }
+      slot.mp.ended = null; slot.mp.flash = '';
+      saveSlot(slot);
+    },
+    freshShared() { return { world:new Map(), dmg:new Map(), pinged:new Set() }; },
+
+    // one simulation tick for one player, plus any buttons they pressed
+    step(slot, dt) {
+      loadSlot(slot);
+      const acts = slot.acts; slot.acts = [];
+      for (const a of acts) {
+        if (a === 'ping') seismicPing();
+        else if (a === 'implode') implode();
+        else if (a === 'surface') { if (running) endRun(false, true); }
+      }
+      if (running) update(dt);
+      saveSlot(slot);
+      return slot.mp.ended;
+    },
+    setKey(slot, dir, on) {
+      const k = { up:'w', down:'s', left:'a', right:'d' }[dir];
+      if (!k) return;
+      slot.keys[k] = !!on;
+      if (dir === 'up' && !on) slot.upSpent = false;
+    },
+    act(slot, a) { slot.acts.push(a); },
+
+    // paint one player into a rectangle of the host canvas
+    paint(slot, view, zoomOverride) {
+      loadSlot(slot);
+      VIEW = view; slot.mp.zoom = zoomOverride || 1;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+      ctx.translate(view.x, view.y);
+      if (p) render();
+      ctx.restore();
+      saveSlot(slot);
+      VIEW = { x:0, y:0, w:cvs.width, h:cvs.height };
+    },
+    // in shared mode the other rigs are drawn over the same world
+    overlay(slot, view, zoomOverride, camRef, tint) {
+      loadSlot(slot);
+      if (!p) { saveSlot(slot); return; }
+      VIEW = view; slot.mp.zoom = zoomOverride || 1;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+      ctx.translate(view.x, view.y);
+      ctx.scale(slot.mp.zoom, slot.mp.zoom);
+      ctx.translate(-Math.round(camRef.x), -Math.round(camRef.y));
+      if (!p.molten)
+        paintRobot(ctx, Math.round(p.px), Math.round(p.py), p.dir, p.face, 0,
+                   tint || coolTint(), { drilling:!!p.drilling, burn:p.burn, phase:animT,
+                                         reach: p.drilling ? beamReach(p.face) : T });
+      ctx.restore();
+      saveSlot(slot);
+      VIEW = { x:0, y:0, w:cvs.width, h:cvs.height };
+    },
+
+    // what the phone needs to draw a workshop and a HUD
+    shopFor(slot) {
+      loadSlot(slot);
+      const cards = [];
+      TREES.forEach(t => {
+        const l = lvl[t.key];
+        const need = t.arti ? ARTI_NEED[t.key] : 0;
+        const have = t.arti ? found[t.key] : 0;
+        if (t.arti && !l && !have) return;
+        const incomplete = t.arti && !l;
+        cards.push({
+          key:t.key, name:t.name, tool:!!(t.tool || t.unlock), incomplete,
+          have, need, level:l, max:t.max, cost:costOf(t, l),
+          maxed: l >= t.max, fitted: !!(t.tool && l >= t.max),
+          desc: incomplete ? 'Salvaged tech, still in pieces. ' + have + ' of ' + need + ' recovered.'
+                           : t.desc(l),
+        });
+      });
+      const out = { cards, bank, best:bestEver, note:
+        'Cool to ' + safeDepth() + 'm / bit reaches ' + ROCK[maxTier()].name +
+        ' / radar ' + (scanRange() || 'offline') + (hasFuelTool() ? ' / ' + fuelMax() + ' cells' : '') };
+      saveSlot(slot);
+      return out;
+    },
+    buy(slot, key) {
+      loadSlot(slot);
+      const t = TREES.find(x => x.key === key);
+      let ok = false;
+      if (t) {
+        const l = lvl[key], cost = costOf(t, l);
+        const locked = t.arti && !l;                 // artifacts are found, never bought
+        if (!locked && l < t.max && bank >= cost) { bank -= cost; lvl[key]++; ok = true; }
+      }
+      saveSlot(slot);
+      return ok;
+    },
+    hudFor(slot) {
+      return {
+        t: slot.p ? +slot.p.t.toFixed(1) : 0,
+        depth: slot.p ? slot.p.depth : 0,
+        best: slot.p ? slot.p.best : 0,
+        run: slot.p ? slot.p.run : 0,
+        bank: slot.bank,
+        fuel: slot.p ? slot.p.fuel : 0,
+        maxFuel: (() => { loadSlot(slot); const f = fuelMax(); saveSlot(slot); return f; })(),
+        heat: slot.p ? Math.round(100 * (1 - (() => { loadSlot(slot); const h = heatFactor(slot.p.depth); saveSlot(slot); return h; })())) : 0,
+        ping: !!slot.lvl.ping, implode: !!slot.lvl.implode,
+        flash: slot.mp.flash, molten: slot.p ? slot.p.molten : false,
+        running: slot.running,
+      };
+    },
+    resizeCanvas(w, h) {
+      cvs.width = w; cvs.height = h;
+      cvs.style.aspectRatio = w + '/' + h;
+      VIEW = { x:0, y:0, w, h };
+    },
+    camOf(slot) { return slot.cam; },
+    setHooks(input, action) { inputHook = input; actionHook = action; },
+    controllerMode(on) { document.documentElement.classList.toggle('playing', !!on); },
+    litTools(ping, imp) {
+      $('padPing').classList.toggle('lit', !!ping);
+      $('padImp').classList.toggle('lit', !!imp);
+    },
+    padEl() { return $('pad'); },
+    setCam(slot, x, y) { slot.cam.x = x; slot.cam.y = y; },
+    trackTarget(slot) {
+      loadSlot(slot);
+      const t = { x: camTargetX(), y: camTargetY() };
+      saveSlot(slot);
+      return t;
+    },
+  };
+  window.TM = ENGINE;
+
   newRun();
   running = false;
   document.documentElement.classList.remove('playing');
@@ -1644,5 +1936,821 @@
   });
 })();
 </script>
+<div class="screen" id="mshop">
+  <div class="lwrap">
+    <div class="lhead">
+      <div><span class="mtag">BETWEEN RUNS</span><h1 id="msRound">ROUND 1 / 5</h1></div>
+      <div class="clockbig"><span class="mtag">DEPLOYING IN</span><b id="msClock">90</b></div>
+    </div>
+    <div class="slots" id="msSlots"></div>
+    <p class="lnote">Everyone fits their rig on their own phone. The mine reopens when all four are ready.</p>
+  </div>
+</div>
+
+<div class="screen" id="mdone">
+  <div class="lwrap">
+    <div class="lhead"><div><span class="mtag">MATCH OVER</span><h1 id="mdWin">WINNER</h1></div></div>
+    <div class="slots" id="mdSlots"></div>
+    <div class="lfoot"><button class="go" id="mdAgain">BACK TO LOBBY</button></div>
+  </div>
+</div>
+
+<div class="screen" id="cplay">
+  <div class="chud">
+    <div class="stat clock"><span>Time</span><b id="chTime">60.0</b></div>
+    <div class="stat"><span>Depth</span><b id="chDepth">0m</b></div>
+    <div class="stat"><span>This run</span><b id="chRun">$0</b></div>
+    <div class="stat"><span>Cells</span><b id="chCells">0</b></div>
+    <div class="cflash" id="chFlash"></div>
+  </div>
+  <div class="cpadhost" id="cPadHost"></div>
+</div>
+
+<div class="screen" id="cshop">
+  <div class="scard wide cshopcard">
+    <div class="cshead">
+      <div><span class="mtag">WORKSHOP</span><h1 id="csBank">$0</h1></div>
+      <div class="clockbig"><span class="mtag">DEPLOY IN</span><b id="csClock">90</b></div>
+    </div>
+    <p class="hint" id="csNote"></p>
+    <div id="csCards" class="cscards"></div>
+    <button class="go" id="csReady">READY</button>
+  </div>
+</div>
+
+<div class="screen" id="menu">
+  <div class="scard">
+    <h1>TINY MINER</h1>
+    <p>Sixty seconds underground. Haul up what you can, spend it on the rig,<br>go again. Tool tech is buried out there somewhere.</p>
+    <div class="srow">
+      <button class="go" id="mSolo">SOLO</button>
+      <button class="go alt" id="mMulti">MULTIPLAYER</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="lobby">
+  <div class="lwrap">
+    <div class="lhead">
+      <div>
+        <span class="mtag">JOIN CODE</span>
+        <h1 id="lCode">----</h1>
+        <p id="lUrl" class="lurl"></p>
+      </div>
+      <canvas id="lQr" class="lqr"></canvas>
+    </div>
+    <div class="slots" id="lSlots"></div>
+    <p class="lnote" id="lNote">Scan the code with a phone to join.</p>
+    <div class="lfoot">
+      <button class="layoutBtn wide2" id="lSetup">SETUP</button>
+      <span class="lsettings" id="lSettings"></span>
+      <button class="go" id="lStart" disabled>START MATCH</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="setup">
+  <div class="scard wide">
+    <h1>MATCH SETUP</h1>
+    <div class="opt">
+      <span class="mtag">PLAY SCREEN</span>
+      <div class="srow">
+        <button class="opt-b" data-set="screen" data-val="shared">SHARED</button>
+        <button class="opt-b" data-set="screen" data-val="individual">INDIVIDUAL</button>
+      </div>
+      <p class="hint" id="sHint"></p>
+    </div>
+    <div class="opt">
+      <span class="mtag">ROUNDS</span>
+      <div class="srow">
+        <button class="opt-b" data-set="rounds" data-val="3">3</button>
+        <button class="opt-b" data-set="rounds" data-val="5">5</button>
+        <button class="opt-b" data-set="rounds" data-val="7">7</button>
+      </div>
+    </div>
+    <button class="go" id="sBack">DONE</button>
+  </div>
+</div>
+
+<div class="screen" id="ctrl">
+  <div class="scard">
+    <h1 id="cTitle">JOIN A MINE</h1>
+    <div id="cForm">
+      <label class="mtag">ROOM CODE</label>
+      <input id="cCode" class="fld" maxlength="4" autocapitalize="characters" autocomplete="off" placeholder="ABCD">
+      <label class="mtag">NAME</label>
+      <input id="cName" class="fld" maxlength="10" autocomplete="off" placeholder="MINER">
+      <label class="mtag">RIG COLOUR</label>
+      <div class="swatches" id="cColors"></div>
+      <button class="go" id="cJoin">JOIN</button>
+      <p class="hint" id="cErr"></p>
+    </div>
+    <div id="cWait" hidden>
+      <canvas id="cRig" width="52" height="52" class="crig"></canvas>
+      <h2 id="cWho"></h2>
+      <p class="hint" id="cStatus">Waiting for the host to start the match.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  // ---------- QR encoder (byte mode, versions 1-6, ECC level L, mask 0) ----------
+  // written out longhand so the lobby needs no third-party script
+  const QR = (() => {
+    const EXP = new Array(512), LOG = new Array(256);
+    for (let i = 0, x = 1; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+    const mul = (a, b) => (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]];
+
+    // data codewords / ecc codewords per version at level L (one block each, v1-v6)
+    const CAP = { 1:[19,7], 2:[34,10], 3:[55,15], 4:[80,20], 5:[108,26], 6:[136,18] };
+    const ALIGN = { 1:[], 2:[6,18], 3:[6,22], 4:[6,26], 5:[6,30], 6:[6,34] };
+
+    function rsGen(n) {
+      let g = [1];
+      for (let i = 0; i < n; i++) {
+        const next = new Array(g.length + 1).fill(0);
+        for (let j = 0; j < g.length; j++) {
+          next[j] ^= mul(g[j], 1);
+          next[j + 1] ^= mul(g[j], EXP[i]);
+        }
+        g = next;
+      }
+      return g;
+    }
+    function rsEncode(data, n) {
+      const g = rsGen(n), res = new Array(n).fill(0);
+      for (const b of data) {
+        const factor = b ^ res[0];
+        res.shift(); res.push(0);
+        for (let i = 0; i < n; i++) res[i] ^= mul(g[i + 1], factor);
+      }
+      return res;
+    }
+    // 15-bit BCH format string for level L (01) with the given mask
+    function formatBits(mask) {
+      let v = (0b01 << 3) | mask, d = v << 10;
+      for (let i = 4; i >= 0; i--) if (d & (1 << (i + 10))) d ^= 0x537 << i;
+      return ((v << 10) | d) ^ 0x5412;
+    }
+
+    function encode(text) {
+      const bytes = new TextEncoder().encode(text);
+      let version = 0;
+      for (const v of [1,2,3,4,5,6]) if (bytes.length + 2 <= CAP[v][0]) { version = v; break; }
+      if (!version) return null;                       // too long for the sizes we support
+      const [dataLen, eccLen] = CAP[version];
+
+      // bit stream: mode 0100, 8-bit length, payload, terminator, pad
+      const bits = [];
+      const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+      push(0b0100, 4); push(bytes.length, 8);
+      for (const b of bytes) push(b, 8);
+      for (let i = 0; i < 4 && bits.length < dataLen * 8; i++) bits.push(0);
+      while (bits.length % 8) bits.push(0);
+      const data = [];
+      for (let i = 0; i < bits.length; i += 8)
+        data.push(bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0));
+      for (let i = 0; data.length < dataLen; i++) data.push(i % 2 ? 0x11 : 0xEC);
+      const all = data.concat(rsEncode(data, eccLen));
+
+      const size = 17 + version * 4;
+      const m = Array.from({length: size}, () => new Array(size).fill(null));
+      const set = (r, c, v) => { if (r >= 0 && c >= 0 && r < size && c < size) m[r][c] = v; };
+
+      const finder = (r, c) => {
+        for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++) {
+          const rr = r + i, cc = c + j;
+          if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
+          const on = i >= 0 && i <= 6 && j >= 0 && j <= 6 &&
+                     (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4));
+          m[rr][cc] = on ? 1 : 0;
+        }
+      };
+      finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+      for (let i = 8; i < size - 8; i++) { m[6][i] = i % 2 === 0 ? 1 : 0; m[i][6] = i % 2 === 0 ? 1 : 0; }
+      const ac = ALIGN[version];
+      for (const r of ac) for (const c of ac) {
+        if ((r <= 8 && c <= 8) || (r <= 8 && c >= size - 9) || (r >= size - 9 && c <= 8)) continue;
+        for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
+          m[r + i][c + j] = (Math.abs(i) === 2 || Math.abs(j) === 2 || (i === 0 && j === 0)) ? 1 : 0;
+      }
+      m[size - 8][8] = 1;                                     // always-dark module
+      const reserve = [];
+      for (let i = 0; i <= 8; i++) { reserve.push([8, i], [i, 8]); }
+      for (let i = 0; i < 8; i++) { reserve.push([8, size - 1 - i], [size - 1 - i, 8]); }
+      for (const [r, c] of reserve) if (m[r][c] === null) m[r][c] = 0;
+
+      // zigzag placement, masked with (row+col)%2
+      let bi = 0, up = true;
+      for (let col = size - 1; col > 0; col -= 2) {
+        if (col === 6) col--;
+        for (let k = 0; k < size; k++) {
+          const row = up ? size - 1 - k : k;
+          for (const c of [col, col - 1]) {
+            if (m[row][c] !== null) continue;
+            let bit = 0;
+            if (bi < all.length * 8) bit = (all[bi >> 3] >> (7 - (bi & 7))) & 1;
+            bi++;
+            m[row][c] = ((row + c) % 2 === 0) ? bit ^ 1 : bit;
+          }
+        }
+        up = !up;
+      }
+      const fmt = formatBits(0);
+      for (let i = 0; i < 15; i++) {
+        const bit = (fmt >> i) & 1;
+        // vertical copy down the left of the top-right finder
+        if (i < 6) m[i][8] = bit;
+        else if (i < 8) m[i + 1][8] = bit;
+        else m[size - 15 + i][8] = bit;
+        // horizontal copy under the top finders
+        if (i < 8) m[8][size - i - 1] = bit;
+        else if (i === 8) m[8][15 - i] = bit;
+        else m[8][14 - i] = bit;
+      }
+      m[size - 8][8] = 1;
+      return m;
+    }
+
+    function draw(canvas, text, scale) {
+      const m = encode(text);
+      if (!m) return false;
+      const n = m.length, q = 4, px = scale || 4;
+      canvas.width = canvas.height = (n + q * 2) * px;
+      const c = canvas.getContext('2d');
+      c.fillStyle = '#fff'; c.fillRect(0, 0, canvas.width, canvas.height);
+      c.fillStyle = '#000';
+      for (let r = 0; r < n; r++) for (let col = 0; col < n; col++)
+        if (m[r][col]) c.fillRect((col + q) * px, (r + q) * px, px, px);
+      return true;
+    }
+    return { encode, draw };
+  })();
+
+  const $ = id => document.getElementById(id);
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+
+  // ---------- shared vocabulary ----------
+  const COLORS = [
+    { key:'amber',  hex:'#f2b134' },
+    { key:'green',  hex:'#5fd08a' },
+    { key:'cyan',   hex:'#7fe6ff' },
+    { key:'violet', hex:'#d08cf0' },
+  ];
+  const MAX_PLAYERS = 4;
+  const PREFIX = 'tinyminer-';
+  const code4 = () => {
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';      // no I/O/0/1
+    let s = '';
+    for (let i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)];
+    return s;
+  };
+
+  // a tiny sprite so the lobby and the phone show the rig you will drive
+  function drawRig(cv, hex) {
+    const ROBOT = ['..HHHHHH..','.HVVVVVVH.','HVEEVVEEVH','HVEEVVEEVH',
+                   'HVVVVVVVVH','.HVVVVVVH.','..HHHHHH..','.T.HHHH.T.'];
+    const PAL = { H:'#2f3a4a', V:'#8fa3bd', E:hex, T:'#1b222c' };
+    const c = cv.getContext('2d');
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.fillStyle = '#181425'; c.fillRect(0, 0, cv.width, cv.height);
+    const s = Math.floor(cv.width / 13);
+    const ox = Math.floor((cv.width - 10*s) / 2), oy = Math.floor((cv.height - 8*s) / 2);
+    for (let r = 0; r < ROBOT.length; r++)
+      for (let k = 0; k < ROBOT[r].length; k++) {
+        const ch = ROBOT[r][k]; if (ch === '.') continue;
+        c.fillStyle = PAL[ch]; c.fillRect(ox + k*s, oy + r*s, s, s);
+      }
+    c.fillStyle = '#d9dde6'; c.fillRect(ox + 3*s, oy + 8*s, 4*s, 2*s);
+  }
+
+  // ---------- transport ----------
+  // everything above this line is plain DOM; everything below speaks PeerJS.
+  const NET = {
+    role:null, peer:null, conns:new Map(), host:null, handlers:{},
+    on(type, fn) { (this.handlers[type] = this.handlers[type] || []).push(fn); },
+    fire(type, msg, from) { (this.handlers[type] || []).forEach(fn => fn(msg, from)); },
+    ready() { return typeof window.Peer === 'function'; },
+
+    startHost(code, cb) {
+      this.role = 'host';
+      this.peer = new Peer(PREFIX + code, { debug: 0 });
+      this.peer.on('open', () => cb(null, code));
+      this.peer.on('error', err => cb(err));
+      this.peer.on('connection', conn => {
+        conn.on('open', () => this.conns.set(conn.peer, conn));
+        conn.on('data', d => { try { this.fire(d.t, d, conn.peer); } catch (e) {} });
+        conn.on('close', () => { this.conns.delete(conn.peer); this.fire('gone', {}, conn.peer); });
+        conn.on('error', () => { this.conns.delete(conn.peer); this.fire('gone', {}, conn.peer); });
+      });
+    },
+    startGuest(code, cb) {
+      this.role = 'guest';
+      this.peer = new Peer({ debug: 0 });
+      this.peer.on('open', () => {
+        const conn = this.peer.connect(PREFIX + code, { reliable: true });
+        const timer = setTimeout(() => cb(new Error('no answer')), 9000);
+        conn.on('open', () => { clearTimeout(timer); this.host = conn; cb(null); });
+        conn.on('data', d => { try { this.fire(d.t, d); } catch (e) {} });
+        conn.on('close', () => this.fire('hostgone', {}));
+        conn.on('error', () => { clearTimeout(timer); cb(new Error('cannot reach that room')); });
+      });
+      this.peer.on('error', err => cb(err));
+    },
+    toAll(msg) { this.conns.forEach(c => { try { c.send(msg); } catch (e) {} }); },
+    to(id, msg) { const c = this.conns.get(id); if (c) { try { c.send(msg); } catch (e) {} } },
+    send(msg) { if (this.host) { try { this.host.send(msg); } catch (e) {} } },
+  };
+
+  // ---------- match state, host side ----------
+  const match = {
+    code:null,
+    settings: { screen:'individual', rounds:5 },
+    players: [],                                   // {id, slot, name, color}
+  };
+  const lobbyPayload = () => ({
+    t:'lobby',
+    players: match.players.map(p => ({ slot:p.slot, name:p.name, color:p.color })),
+    settings: match.settings,
+  });
+
+  const SCREENS = ['menu','lobby','setup','ctrl','mshop','mdone','cplay','cshop'];
+  function show(id) {
+    SCREENS.forEach(s => $(s).classList.toggle('on', s === id));
+    document.querySelector('.stage').style.display = id ? 'none' : '';
+    document.querySelectorAll('.legend').forEach(l => l.style.display = id ? 'none' : '');
+    // the shell belongs to solo play and to a controller mid-run, nowhere else
+    const pad = $('pad');
+    if (pad) pad.style.display = (!id || id === 'cplay') ? '' : 'none';
+  }
+  function showGame() {
+    SCREENS.forEach(s => $(s).classList.remove('on'));
+    document.querySelector('.stage').style.display = '';
+    document.querySelectorAll('.legend').forEach(l => l.style.display = '');
+    const pad = $('pad'); if (pad) pad.style.display = '';
+  }
+
+  // ---------- lobby rendering ----------
+  function renderSlots() {
+    const wrap = $('lSlots');
+    wrap.innerHTML = '';
+    for (let i = 0; i < MAX_PLAYERS; i++) {
+      const pl = match.players.find(p => p.slot === i);
+      const el = document.createElement('div');
+      el.className = 'slot' + (pl ? ' filled' : '');
+      if (pl) {
+        const hex = (COLORS.find(c => c.key === pl.color) || COLORS[0]).hex;
+        el.style.borderColor = hex;
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 52;
+        el.appendChild(cv);
+        drawRig(cv, hex);
+        const b = document.createElement('b');
+        b.textContent = pl.name; b.style.color = hex;
+        el.appendChild(b);
+        const s = document.createElement('span');
+        s.textContent = 'PLAYER ' + (i + 1);
+        el.appendChild(s);
+      } else {
+        const s = document.createElement('span');
+        s.textContent = 'SLOT ' + (i + 1);
+        el.appendChild(s);
+        const w = document.createElement('span');
+        w.textContent = 'OPEN';
+        w.style.color = '#4f4a63';
+        el.appendChild(w);
+      }
+      wrap.appendChild(el);
+    }
+    $('lStart').disabled = match.players.length === 0;
+    $('lSettings').textContent =
+      match.settings.screen.toUpperCase() + ' SCREEN / ' + match.settings.rounds + ' ROUNDS';
+  }
+
+  function beginHosting() {
+    show('lobby');
+    if (!NET.ready()) {
+      $('lNote').textContent = 'Multiplayer needs an internet connection -- the peer library did not load.';
+      $('lCode').textContent = '----';
+      return;
+    }
+    const tryCode = attempt => {
+      const code = code4();
+      NET.startHost(code, (err, ok) => {
+        if (err) {
+          if (attempt < 4) return tryCode(attempt + 1);   // id collision or broker hiccup
+          $('lNote').textContent = 'Could not open a room: ' + (err.type || err.message || 'unknown');
+          return;
+        }
+        match.code = ok;
+        $('lCode').textContent = ok;
+        const url = location.origin + location.pathname + '?join=' + ok;
+        $('lUrl').textContent = url;
+        if (!QR.draw($('lQr'), url, 4)) $('lQr').style.display = 'none';
+        renderSlots();
+      });
+    };
+    tryCode(0);
+  }
+
+  NET.on('hello', (msg, from) => {
+    if (match.players.find(p => p.id === from)) return;
+    if (match.players.length >= MAX_PLAYERS) { NET.to(from, { t:'denied', why:'That mine is full.' }); return; }
+    const taken = match.players.map(p => p.color);
+    let color = COLORS.some(c => c.key === msg.color) && !taken.includes(msg.color)
+      ? msg.color : (COLORS.find(c => !taken.includes(c.key)) || COLORS[0]).key;
+    const used = match.players.map(p => p.slot);
+    let slot = 0; while (used.includes(slot)) slot++;
+    const name = (msg.name || '').trim().slice(0, 10).toUpperCase() || ('MINER ' + (slot + 1));
+    match.players.push({ id:from, slot, name, color });
+    NET.to(from, { t:'welcome', slot, name, color });
+    NET.toAll(lobbyPayload());
+    renderSlots();
+  });
+  NET.on('gone', (msg, from) => {
+    const i = match.players.findIndex(p => p.id === from);
+    if (i < 0) return;
+    match.players.splice(i, 1);
+    NET.toAll(lobbyPayload());
+    renderSlots();
+  });
+
+  // ---------- controller ----------
+  let myColor = COLORS[0].key, taken = [];
+  function renderSwatches() {
+    const wrap = $('cColors');
+    wrap.innerHTML = '';
+    COLORS.forEach(c => {
+      const b = document.createElement('button');
+      b.className = 'sw' + (c.key === myColor ? ' on' : '');
+      b.disabled = taken.includes(c.key);
+      const i = document.createElement('i');
+      i.style.background = c.hex;
+      b.appendChild(i);
+      b.onclick = () => { myColor = c.key; renderSwatches(); };
+      wrap.appendChild(b);
+    });
+  }
+  function showController(prefill) {
+    show('ctrl');
+    if (prefill) $('cCode').value = prefill;
+    renderSwatches();
+  }
+  $('cJoin').onclick = () => {
+    const code = ($('cCode').value || '').trim().toUpperCase();
+    const name = ($('cName').value || '').trim().toUpperCase();
+    if (code.length !== 4) { $('cErr').textContent = 'Room codes are four characters.'; return; }
+    if (!NET.ready()) { $('cErr').textContent = 'No connection -- the peer library did not load.'; return; }
+    $('cErr').textContent = 'Connecting...';
+    $('cJoin').disabled = true;
+    NET.startGuest(code, err => {
+      if (err) {
+        $('cErr').textContent = 'Could not reach room ' + code + '. Check the code and try again.';
+        $('cJoin').disabled = false;
+        return;
+      }
+      NET.send({ t:'hello', name, color:myColor });
+    });
+  };
+  NET.on('welcome', msg => {
+    const hex = (COLORS.find(c => c.key === msg.color) || COLORS[0]).hex;
+    $('cForm').hidden = true; $('cWait').hidden = false;
+    $('cTitle').textContent = 'PLAYER ' + (msg.slot + 1);
+    $('cWho').textContent = msg.name;
+    $('cWho').style.color = hex;
+    drawRig($('cRig'), hex);
+  });
+  NET.on('denied', msg => {
+    $('cErr').textContent = msg.why || 'The host turned that away.';
+    $('cJoin').disabled = false;
+  });
+  NET.on('lobby', msg => {
+    taken = msg.players.map(p => p.color);
+    if (!$('cForm').hidden) renderSwatches();
+  });
+  NET.on('hostgone', () => {
+    $('cStatus').textContent = 'Lost the host. Reload to rejoin.';
+  });
+
+  // ---------- setup panel ----------
+  function renderSetup() {
+    document.querySelectorAll('.opt-b').forEach(b => {
+      const cur = String(match.settings[b.dataset.set]);
+      b.classList.toggle('on', cur === b.dataset.val);
+    });
+    $('sHint').textContent = match.settings.screen === 'shared'
+      ? 'Everyone digs the same mine and can see each other underground.'
+      : 'Each player gets their own mine, generated identically, shown side by side.';
+  }
+  document.querySelectorAll('.opt-b').forEach(b => {
+    b.onclick = () => {
+      const v = b.dataset.val;
+      match.settings[b.dataset.set] = b.dataset.set === 'rounds' ? parseInt(v, 10) : v;
+      renderSetup();
+      if (NET.role === 'host') NET.toAll(lobbyPayload());
+    };
+  });
+  $('lSetup').onclick = () => { show('setup'); renderSetup(); };
+  $('sBack').onclick = () => { show('lobby'); renderSlots(); };
+
+  // ---------- boot ----------
+  $('mSolo').onclick = () => { showGame(); document.getElementById('title').classList.add('on'); };
+  $('mMulti').onclick = () => { TOUCH ? showController('') : beginHosting(); };
+  $('lStart').onclick = () => startMatch();
+
+
+  // ================= match runner (host) =================
+  const RUN_SECONDS = 60, SHOP_SECONDS = 90;
+  const hex = key => (COLORS.find(c => c.key === key) || COLORS[0]).hex;
+  let phase = 'lobby', round = 0, shopLeft = 0, raf = 0, lastT = 0;
+
+  function activePlayers() { return match.players.slice().sort((a, b) => a.slot - b.slot); }
+
+  function startMatch() {
+    if (!match.players.length) return;
+    phase = 'run'; round = 1;
+    match.players.forEach(pl => { pl.game = TM.makeSlot(); pl.done = false; pl.ready = false; });
+    NET.toAll({ t:'begin', settings: match.settings });
+    beginRound();
+  }
+
+  function beginRound() {
+    const seed = Math.floor(Math.random() * 1e6);
+    const shared = match.settings.screen === 'shared' ? TM.freshShared() : null;
+    const spread = [12, 6, 18, 2];
+    activePlayers().forEach((pl, i) => {
+      TM.startRun(pl.game, seed, shared, shared ? spread[i % 4] : 12);
+      pl.done = false; pl.ready = false;
+    });
+    phase = 'run';
+    show(null);                                   // the mine itself is the screen
+    document.documentElement.classList.add('hosting');
+    sizeCanvas();
+    NET.toAll({ t:'phase', phase:'run', round, rounds: match.settings.rounds });
+    lastT = performance.now();
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+
+  function sizeCanvas() {
+    const wide = match.settings.screen === 'shared';
+    TM.resizeCanvas(wide ? 1000 : 1000, 640);
+  }
+
+  function endRound() {
+    document.documentElement.classList.remove('hosting');
+    phase = 'shop';
+    shopLeft = SHOP_SECONDS;
+    if (round >= match.settings.rounds) return finishMatch();
+    show('mshop');
+    $('msRound').textContent = 'ROUND ' + round + ' / ' + match.settings.rounds;
+    activePlayers().forEach(pl => { pl.ready = false; sendShop(pl); });
+    NET.toAll({ t:'phase', phase:'shop', round, rounds: match.settings.rounds });
+    renderShopBoard();
+  }
+
+  function finishMatch() {
+    document.documentElement.classList.remove('hosting');
+    phase = 'done';
+    show('mdone');
+    // bank decides it, and when two players tie the deeper run wins
+    const board = activePlayers().slice()
+      .sort((a, b) => (b.game.bank - a.game.bank) || (b.game.bestEver - a.game.bestEver));
+    $('mdWin').textContent = board.length ? board[0].name + ' WINS' : 'NO ONE WINS';
+    const wrap = $('mdSlots'); wrap.innerHTML = '';
+    board.forEach((pl, i) => {
+      const el = document.createElement('div');
+      el.className = 'slot filled';
+      el.style.borderColor = hex(pl.color);
+      const cv = document.createElement('canvas'); cv.width = cv.height = 52;
+      el.appendChild(cv); drawRig(cv, hex(pl.color));
+      const b = document.createElement('b'); b.textContent = pl.name; b.style.color = hex(pl.color);
+      el.appendChild(b);
+      const m = document.createElement('div'); m.className = 'money'; m.textContent = '$' + pl.game.bank;
+      el.appendChild(m);
+      const r = document.createElement('span'); r.className = 'rank';
+      r.textContent = ['1ST','2ND','3RD','4TH'][i] + ' / DEEPEST ' + pl.game.bestEver + 'm';
+      el.appendChild(r);
+      wrap.appendChild(el);
+    });
+    NET.toAll({ t:'phase', phase:'done',
+      board: board.map((pl, i) => ({ name:pl.name, bank:pl.game.bank, place:i + 1, color:pl.color })) });
+  }
+
+  function renderShopBoard() {
+    const wrap = $('msSlots'); wrap.innerHTML = '';
+    activePlayers().forEach(pl => {
+      const el = document.createElement('div');
+      el.className = 'slot filled';
+      el.style.borderColor = hex(pl.color);
+      const cv = document.createElement('canvas'); cv.width = cv.height = 52;
+      el.appendChild(cv); drawRig(cv, hex(pl.color));
+      const b = document.createElement('b'); b.textContent = pl.name; b.style.color = hex(pl.color);
+      el.appendChild(b);
+      const m = document.createElement('div'); m.className = 'money'; m.textContent = '$' + pl.game.bank;
+      el.appendChild(m);
+      const r = document.createElement('span');
+      r.className = 'rdy' + (pl.ready ? ' on' : '');
+      r.textContent = pl.ready ? 'READY' : 'FITTING...';
+      el.appendChild(r);
+      wrap.appendChild(el);
+    });
+    $('msClock').textContent = Math.ceil(shopLeft);
+  }
+
+  function sendShop(pl) {
+    const shop = TM.shopFor(pl.game);
+    NET.to(pl.id, { t:'shop', shop, left: Math.ceil(shopLeft), round, rounds: match.settings.rounds });
+  }
+
+  // ---------- the frame ----------
+  let hudAccum = 0;
+  function tick(now) {
+    raf = requestAnimationFrame(tick);
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+
+    if (phase === 'run') {
+      const players = activePlayers();
+      players.forEach(pl => {
+        if (pl.done) return;
+        const ended = TM.step(pl.game, dt);
+        if (ended) { pl.done = true; NET.to(pl.id, { t:'ended', ...ended, bank: pl.game.bank }); }
+      });
+      drawMatch(players);
+      hudAccum += dt;
+      if (hudAccum > 0.1) {
+        hudAccum = 0;
+        players.forEach(pl => NET.to(pl.id, { t:'hud', hud: TM.hudFor(pl.game) }));
+      }
+      if (players.every(pl => pl.done)) endRound();
+    } else if (phase === 'shop') {
+      shopLeft -= dt;
+      renderShopBoard();
+      if (shopLeft <= 0 || activePlayers().every(pl => pl.ready)) { round++; beginRound(); }
+    }
+  }
+
+  function drawMatch(players) {
+    const cv = document.getElementById('game');
+    const g = cv.getContext('2d');
+    g.fillStyle = '#0b0a10'; g.fillRect(0, 0, cv.width, cv.height);
+    if (match.settings.screen === 'shared') {
+      const view = { x:0, y:0, w:cv.width, h:cv.height };
+      // one camera for the whole party: pull back far enough that nobody drops
+      // off the top while the leader digs
+      const pys = players.filter(pl => pl.game.p).map(pl => pl.game.p.py);
+      const top = Math.min(...pys), bot = Math.max(...pys);
+      const span = (bot - top) + 220;                       // headroom above and below
+      const zFit = Math.min(cv.width / TM.WORLD_W, cv.height / span);
+      const z = Math.max(0.55, zFit);
+      const camY = Math.max(-40, (top + bot) / 2 - (cv.height / z) / 2);
+      const seeW = cv.width / z;
+      const pxs = players.filter(pl => pl.game.p).map(pl => pl.game.p.px);
+      const camX = seeW >= TM.WORLD_W ? 0
+        : Math.max(0, Math.min(TM.WORLD_W - seeW,
+            (Math.min(...pxs) + Math.max(...pxs)) / 2 - seeW / 2));
+      players.forEach(pl => TM.setCam(pl.game, camX, camY));
+      TM.paint(players[0].game, view, z);
+      players.slice(1).forEach(pl => TM.overlay(pl.game, view, z, { x:camX, y:camY }, hex(pl.color)));
+      // a colour flag under each rig, because four grey robots look alike
+      players.forEach(pl => {
+        if (!pl.game.p) return;
+        const sx = (pl.game.p.px - camX) * z, sy = (pl.game.p.py - camY) * z;
+        g.fillStyle = hex(pl.color);
+        g.fillRect(sx + 3 * z, sy + 17 * z, 10 * z, 2.5 * z);
+        g.globalAlpha = .35;
+        g.fillRect(sx + 7 * z, sy - 6 * z, 2 * z, 5 * z);
+        g.globalAlpha = 1;
+      });
+      players.forEach(pl => label(g, pl, null));
+    } else {
+      const w = Math.floor(cv.width / players.length);
+      players.forEach((pl, i) => {
+        const view = { x:i * w, y:0, w, h:cv.height };
+        const target = TM.trackTarget(pl.game);
+        TM.setCam(pl.game, target.x, Math.max(-40, target.y));
+        TM.paint(pl.game, view, 1);
+        g.strokeStyle = hex(pl.color); g.lineWidth = 2;
+        g.strokeRect(view.x + 1, 1, w - 2, cv.height - 2);
+        label(g, pl, view);
+      });
+    }
+  }
+
+  function label(g, pl, view) {
+    const x = view ? view.x + 8 : 8;
+    const y = view ? 8 : 8 + pl.slot * 18;
+    g.font = '13px TinyMiner, monospace';
+    g.fillStyle = 'rgba(11,10,16,.75)';
+    const txt = pl.done ? pl.name + '  $' + pl.game.p.run + '  SURFACED'
+      : pl.name + '  $' + pl.game.p.run + '  ' + pl.game.p.depth + 'm  ' + pl.game.p.t.toFixed(0) + 's';
+    g.fillRect(x - 3, y - 2, g.measureText(txt).width + 8, 16);
+    g.fillStyle = hex(pl.color);
+    g.fillText(txt, x, y + 10);
+  }
+
+  NET.on('in',  (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.setKey(pl.game, m.dir, m.on); });
+  NET.on('act', (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.act(pl.game, m.a); });
+  NET.on('buy', (m, from) => {
+    const pl = match.players.find(x => x.id === from);
+    if (!pl || phase !== 'shop') return;
+    TM.buy(pl.game, m.key);
+    sendShop(pl); renderShopBoard();
+  });
+  NET.on('ready', (m, from) => {
+    const pl = match.players.find(x => x.id === from);
+    if (!pl || phase !== 'shop') return;
+    pl.ready = true; renderShopBoard();
+  });
+  $('mdAgain').onclick = () => {
+    phase = 'lobby'; cancelAnimationFrame(raf); raf = 0;
+    match.players.forEach(pl => { pl.game = null; pl.ready = false; });
+    NET.toAll({ t:'phase', phase:'lobby' });
+    show('lobby'); renderSlots();
+  };
+
+  // ================= controller side =================
+  let myShop = null;
+  function controllerPhase(msg) {
+    if (msg.phase === 'run') {
+      show('cplay');
+      const host = $('cPadHost');
+      if (TM.padEl().parentNode !== host) host.appendChild(TM.padEl());
+      TM.controllerMode(true);
+      TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
+    } else if (msg.phase === 'shop') {
+      show('cshop');
+    } else if (msg.phase === 'done') {
+      show('ctrl');
+      $('cForm').hidden = true; $('cWait').hidden = false;
+      const me = (msg.board || []).find(b => b.name === $('cWho').textContent);
+      $('cTitle').textContent = me ? ['1ST','2ND','3RD','4TH'][me.place - 1] + ' PLACE' : 'MATCH OVER';
+      $('cStatus').textContent = me ? 'You banked $' + me.bank + '.' : 'Thanks for digging.';
+    } else if (msg.phase === 'lobby') {
+      show('ctrl');
+      $('cTitle').textContent = 'BACK IN THE LOBBY';
+      $('cStatus').textContent = 'Waiting for the host to start the next match.';
+    }
+  }
+  NET.on('begin', () => {});
+  NET.on('phase', controllerPhase);
+  NET.on('hud', m => {
+    const h = m.hud;
+    $('chTime').textContent = h.t.toFixed(1);
+    $('chDepth').textContent = h.depth + 'm';
+    $('chRun').textContent = '$' + h.run;
+    $('chCells').textContent = h.fuel + '/' + h.maxFuel;
+    $('chFlash').textContent = h.flash || '';
+    TM.litTools(h.ping, h.implode);
+  });
+  NET.on('ended', m => {
+    $('chFlash').textContent = m.molten ? 'RIG LOST -- half the haul gone' : 'SURFACED with $' + m.kept;
+  });
+  NET.on('shop', m => {
+    myShop = m;
+    $('csBank').textContent = '$' + m.shop.bank;
+    $('csClock').textContent = m.left;
+    $('csNote').textContent = m.shop.note;
+    const wrap = $('csCards'); wrap.innerHTML = '';
+    m.shop.cards.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'tree' + (c.maxed ? ' max' : '') + (c.incomplete ? ' partial' : '');
+      const pipN = c.incomplete ? c.need : (c.tool ? 0 : c.max);
+      const pipF = c.incomplete ? c.have : c.level;
+      const pips = Array.from({ length: pipN }, (_, i) =>
+        '<i class="pip' + (i < pipF ? ' on' : '') + '"></i>').join('');
+      el.innerHTML = '<div class="trow"><h3>' + c.name + '</h3><div class="pips">' + pips + '</div></div>' +
+                     '<p>' + c.desc + '</p>';
+      const btn = document.createElement('button');
+      btn.className = 'buy';
+      if (c.incomplete) { btn.textContent = c.have + ' / ' + c.need + ' PIECES'; btn.disabled = true; }
+      else if (c.maxed) { btn.textContent = c.fitted ? 'FITTED' : 'MAXED'; btn.disabled = true; }
+      else {
+        btn.textContent = 'UPGRADE  $' + c.cost;
+        btn.disabled = c.cost > m.shop.bank;
+        btn.onclick = () => NET.send({ t:'buy', key:c.key });
+      }
+      el.appendChild(btn);
+      wrap.appendChild(el);
+    });
+    $('csReady').disabled = false;
+    $('csReady').textContent = 'READY';
+  });
+  $('csReady').onclick = () => {
+    NET.send({ t:'ready' });
+    $('csReady').disabled = true;
+    $('csReady').textContent = 'WAITING FOR THE OTHERS';
+  };
+
+  const joinCode = new URLSearchParams(location.search).get('join');
+  if (joinCode) showController(joinCode.toUpperCase().slice(0, 4));
+  else show('menu');
+})();
+</script>
+
 </body>
 </html>
