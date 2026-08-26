@@ -236,6 +236,11 @@
   .opt-b{ background:#1b1826; border:1px solid var(--line); color:var(--dim); font:inherit;
     font-size:10px; letter-spacing:1px; padding:11px 16px; cursor:pointer }
   .opt-b.on{ border-color:var(--amber); color:var(--amber); background:#2a2418 }
+  .stepper{ display:flex; align-items:center; gap:16px }
+  .stepper b{ min-width:132px; text-align:center; font-size:22px; color:var(--amber);
+    font-variant-numeric:tabular-nums; letter-spacing:1px }
+  .opt-b.step{ width:46px; padding:11px 0; font-size:14px; line-height:1 }
+  .opt-b.step:disabled{ opacity:.3; cursor:not-allowed }
 
   .lwrap{ width:min(96vw,900px); display:flex; flex-direction:column; gap:16px }
   .lhead{ display:flex; gap:20px; align-items:center; border-bottom:1px solid var(--line); padding-bottom:14px }
@@ -2193,19 +2198,20 @@
     </div>
     <div class="opt" id="optRounds">
       <span class="mtag">ROUNDS</span>
-      <div class="srow">
-        <button class="opt-b" data-set="rounds" data-val="3">3</button>
-        <button class="opt-b" data-set="rounds" data-val="5">5</button>
-        <button class="opt-b" data-set="rounds" data-val="7">7</button>
+      <div class="stepper">
+        <button class="opt-b step" data-step="rounds" data-dir="-1">&#8722;</button>
+        <b id="roundsVal">5</b>
+        <button class="opt-b step" data-step="rounds" data-dir="1">+</button>
       </div>
     </div>
     <div class="opt" id="optGoal" hidden>
       <span class="mtag">FIRST TO BANK</span>
-      <div class="srow">
-        <button class="opt-b" data-set="goal" data-val="5000">$5,000</button>
-        <button class="opt-b" data-set="goal" data-val="15000">$15,000</button>
-        <button class="opt-b" data-set="goal" data-val="50000">$50,000</button>
+      <div class="stepper">
+        <button class="opt-b step" data-step="goal" data-dir="-1">&#8722;</button>
+        <b id="goalVal">$15,000</b>
+        <button class="opt-b step" data-step="goal" data-dir="1">+</button>
       </div>
+      <p class="hint">Steps of $1,000 up to $10,000, then $10,000 at a time.</p>
     </div>
     <button class="go" id="sBack">DONE</button>
   </div>
@@ -2623,6 +2629,30 @@
          : st.mode === 'goal'    ? 'FIRST TO ' + money(st.goal)
          :                         'ENDLESS';
   }
+  const ROUND_MIN = 1, GOAL_MIN = 1000;
+  // a thousand at a time until ten, then ten thousand at a time -- and no ceiling
+  const goalStep = (v, dir) => dir > 0 ? (v >= 10000 ? 10000 : 1000)
+                                       : (v > 10000 ? 10000 : 1000);
+  function bump(which, dir) {
+    const st = match.settings;
+    if (which === 'rounds') st.rounds = Math.max(ROUND_MIN, st.rounds + dir);
+    else st.goal = Math.max(GOAL_MIN, st.goal + dir * goalStep(st.goal, dir));
+    renderSetup();
+    if (NET.role === 'host') NET.toAll(lobbyPayload());
+  }
+  // press and hold to run the number up quickly, since there is no upper bound
+  document.querySelectorAll('.opt-b.step').forEach(btn => {
+    const which = btn.dataset.step, dir = parseInt(btn.dataset.dir, 10);
+    let hold = 0, rep = 0;
+    const stop = () => { clearTimeout(hold); clearInterval(rep); hold = rep = 0; };
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      bump(which, dir);
+      hold = setTimeout(() => { rep = setInterval(() => bump(which, dir), 90); }, 420);
+    });
+    ['pointerup','pointerleave','pointercancel','blur'].forEach(ev => btn.addEventListener(ev, stop));
+  });
+
   function renderSetup() {
     document.querySelectorAll('.opt-b').forEach(b => {
       const cur = String(match.settings[b.dataset.set]);
@@ -2633,6 +2663,13 @@
       : 'Each player gets their own mine, generated identically, shown side by side.';
     $('optRounds').hidden = match.settings.mode !== 'rounds';
     $('optGoal').hidden = match.settings.mode !== 'goal';
+    $('roundsVal').textContent = match.settings.rounds;
+    $('goalVal').textContent = money(match.settings.goal);
+    document.querySelectorAll('.opt-b.step').forEach(b => {
+      const dir = parseInt(b.dataset.dir, 10);
+      b.disabled = dir < 0 && (b.dataset.step === 'rounds'
+        ? match.settings.rounds <= ROUND_MIN : match.settings.goal <= GOAL_MIN);
+    });
     $('mHint').textContent =
       match.settings.mode === 'rounds'  ? 'A fixed number of runs, then the biggest bank wins.'
     : match.settings.mode === 'goal'    ? 'Runs keep coming until someone banks the target.'
