@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Tiny Miner</title>
 <style>
   @font-face{
@@ -116,6 +116,71 @@
   /* only the workshop footer pushes its button to the right edge */
   .wfoot .go{ margin-left:auto }
   .go:hover{ background:#ffc75a }
+  /* ---------- handheld shell: only ever shown on touch devices ---------- */
+  .pad{ display:none }
+  html.touch, html.touch body{ height:100%; overflow:hidden; overscroll-behavior:none }
+  html.touch body{ margin:0; padding:0; gap:0; justify-content:flex-start;
+                   min-height:100dvh; height:100dvh;
+                   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+                   touch-action:manipulation }
+  html.touch .legend{ display:none }
+  /* the screen runs the full width of the device with just a bezel around it */
+  html.touch .stage{ width:100%; padding:6px 6px 0; }
+  html.touch .shell{ border:0; border-bottom:1px solid var(--line); padding:0 }
+  html.touch canvas#game{ border:2px solid #05040a }
+  html.touch .hud{ gap:10px; padding:7px 2px; flex-wrap:wrap }
+  html.touch .stat b{ font-size:16px }
+  /* the HUD buttons are replaced wholesale by the shell controls */
+  html.touch .ping, html.touch .imp, html.touch .out{ display:none }
+
+  /* controls sit low in the shell, where a thumb actually lands */
+  html.touch .pad{ display:grid; visibility:hidden; flex:1; min-height:0; width:100%;
+                   grid-template-columns:1fr 1fr; align-content:end; gap:14px;
+                   padding:10px 16px calc(18px + env(safe-area-inset-bottom)) }
+  .dpad{ display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px);
+         grid-column:1; grid-row:2; justify-self:start }
+  .dpad button{ background:#232032; border:1px solid #3a3550; color:var(--ink);
+                font:inherit; font-size:14px; padding:0; cursor:pointer; touch-action:none }
+  .dpad button:active, .dpad button.on{ background:var(--amber); color:#15131d }
+  .dpad .u{ grid-area:1/2 } .dpad .l{ grid-area:2/1 }
+  .dpad .r{ grid-area:2/3 } .dpad .d{ grid-area:3/2 }
+  .dpad .c{ grid-area:2/2; background:#1b1826; border-color:#2b2740 }
+  .abtns{ display:flex; gap:12px; align-items:center; grid-column:2; grid-row:2; justify-self:end }
+  .circ{ width:62px; height:62px; border-radius:50%; border:2px solid #3a3550; background:#232032;
+         color:var(--dim); font:inherit; font-size:9px; letter-spacing:1px; cursor:pointer;
+         touch-action:none }
+  .circ.lit.pingb{ border-color:#2f5560; background:#1d2a33; color:#7fe6ff }
+  .circ.lit.impb{ border-color:#5a2f60; background:#2b1d33; color:#d08cf0 }
+  .circ:active.lit{ filter:brightness(1.6) }
+  .startpill{ grid-column:1 / -1; grid-row:1; justify-self:center;
+              background:#2a2418; border:1px solid #5a4a2a; color:var(--amber); font:inherit;
+              font-size:9px; letter-spacing:1px; padding:11px 14px; border-radius:14px;
+              cursor:pointer; touch-action:none; --hold:0%;
+              background-image:linear-gradient(to right, rgba(242,177,52,.55) var(--hold), transparent var(--hold)) }
+  .startpill:disabled{ opacity:.4 }
+
+  /* between runs the workshop is its own screen, laid out for a phone */
+  html.touch .workshop{ position:fixed; inset:0; border:0; z-index:6;
+    padding:calc(14px + env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom));
+    overflow-y:auto; -webkit-overflow-scrolling:touch }
+  html.touch .wtop{ position:sticky; top:0; background:#100e18; z-index:2;
+    flex-direction:row; align-items:center; padding:2px 0 10px }
+  html.touch .wtop h1{ font-size:16px }
+  html.touch .wbank b{ font-size:22px }
+  html.touch .wbody{ flex-direction:column; align-items:stretch }
+  html.touch canvas#bay{ align-self:center; width:132px; height:132px }
+  html.touch .trees{ grid-template-columns:1fr }
+  html.touch .tree{ padding:12px }
+  html.touch .buy{ padding:11px; font-size:11px }
+  /* DEPLOY parks itself at the bottom of the screen, always reachable */
+  html.touch .wfoot{ position:fixed; left:0; right:0; bottom:0; margin:0;
+    background:#100e18; border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom)); gap:10px }
+  html.touch .wfoot .go{ padding:13px 22px; font-size:11px }
+  html.touch .modal{ position:fixed; z-index:7; padding:18px }
+  html.touch.playing .pad{ visibility:visible }
+  html.touch .mcard{ max-width:none; width:100% }
+
   /* tech assembled -- sits over the workshop until acknowledged */
   .modal{ position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
           background:rgba(8,7,12,.82) }
@@ -196,6 +261,21 @@
     </div>
   </div>
 </div>
+
+  <div class="pad" id="pad">
+    <div class="dpad">
+      <button class="u" data-dir="up">&#9650;</button>
+      <button class="l" data-dir="left">&#9664;</button>
+      <button class="c" disabled></button>
+      <button class="r" data-dir="right">&#9654;</button>
+      <button class="d" data-dir="down">&#9660;</button>
+    </div>
+    <button class="startpill" id="padStart">SURFACE</button>
+    <div class="abtns">
+      <button class="circ pingb" id="padPing">PING</button>
+      <button class="circ impb" id="padImp">IMP</button>
+    </div>
+  </div>
 
 <div class="legend">
   <span>Tougher rock hosts richer ore -- drill power decides what you can even scratch.</span>
@@ -680,6 +760,7 @@
     shake = 0; running = true;
     $('workshop').classList.remove('on');
     $('toolModal').hidden = true;
+    document.documentElement.classList.add('playing');
     flash('Deploying.');
     hud();
   }
@@ -910,6 +991,9 @@
     ib.disabled = !running || p.fuel <= 0;
 
     $('endBtn').disabled = !running;
+    $('padStart').disabled = !running;
+    $('padPing').classList.toggle('lit', !!lvl.ping);
+    $('padImp').classList.toggle('lit', !!lvl.implode);
 
     const box = $('fuelBox');
     box.hidden = !hasFuelTool();
@@ -1378,6 +1462,7 @@
 
   function endRun(molten, early) {
     running = false;
+    document.documentElement.classList.remove('playing');
     cancelHold();
     p.molten = !!molten;
     const kept = molten ? Math.floor(p.run / 2) : p.run;
@@ -1410,9 +1495,11 @@
   function holdTick() {
     if (!holdFrom) return;
     const k = Math.min(1, (performance.now() - holdFrom) / HOLD_MS);
-    const btn = $('endBtn');
-    btn.style.setProperty('--hold', (k * 100) + '%');
-    btn.textContent = k < 1 ? 'HOLD ' + (3 - k * 3).toFixed(1) + 's' : 'SURFACE';
+    const label = k < 1 ? 'HOLD ' + (3 - k * 3).toFixed(1) + 's' : 'SURFACE';
+    [$('endBtn'), $('padStart')].forEach(btn => {
+      btn.style.setProperty('--hold', (k * 100) + '%');
+      btn.textContent = label;
+    });
     if (k >= 1) { cancelHold(); surface(); return; }
     holdRaf = requestAnimationFrame(holdTick);
   }
@@ -1424,18 +1511,59 @@
   function cancelHold() {
     holdFrom = 0;
     cancelAnimationFrame(holdRaf);
-    const btn = $('endBtn');
-    btn.style.setProperty('--hold', '0%');
-    btn.textContent = 'SURFACE';
+    [$('endBtn'), $('padStart')].forEach(btn => {
+      btn.style.setProperty('--hold', '0%');
+      btn.textContent = 'SURFACE';
+    });
   }
   function surface() {
     if (!running) return;
     endRun(false, true);
   }
+  // ---------- touch controls ----------
+  // the shell only exists for coarse pointers; desktop keeps keyboard + HUD buttons
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+  if (TOUCH) document.documentElement.classList.add('touch');
+
+  const DIR_KEY = { up:'w', down:'s', left:'a', right:'d' };
+  const TAP_MIN = 130;                          // a tap is held this long even if you let go sooner
+  function padDir(dir, on, el) {
+    const k = DIR_KEY[dir];
+    keys[k] = on;
+    if (dir === 'up' && !on) upSpent = false;   // releasing up is a fresh intent
+    if (el) el.classList.toggle('on', on);
+  }
+  document.querySelectorAll('.dpad button[data-dir]').forEach(btn => {
+    const dir = btn.dataset.dir;
+    let since = 0, timer = 0;
+    const down = e => {
+      e.preventDefault();
+      btn.setPointerCapture?.(e.pointerId);
+      clearTimeout(timer);
+      since = performance.now();
+      padDir(dir, true, btn);
+    };
+    const up = e => {
+      e.preventDefault();
+      const left = TAP_MIN - (performance.now() - since);
+      if (left > 0) { clearTimeout(timer); timer = setTimeout(() => padDir(dir, false, btn), left); }
+      else padDir(dir, false, btn);
+    };
+    btn.addEventListener('pointerdown', down);
+    ['pointerup','pointercancel','pointerleave'].forEach(ev => btn.addEventListener(ev, up));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  $('padPing').addEventListener('pointerdown', e => { e.preventDefault(); seismicPing(); });
+  $('padImp').addEventListener('pointerdown', e => { e.preventDefault(); implode(); });
+
   const eb = $('endBtn');
   eb.addEventListener('pointerdown', e => { e.preventDefault(); startHold(); });
   ['pointerup','pointerleave','pointercancel','blur'].forEach(ev => eb.addEventListener(ev, cancelHold));
   addEventListener('blur', cancelHold);
+
+  const pillEl = $('padStart');
+  pillEl.addEventListener('pointerdown', e => { e.preventDefault(); startHold(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => pillEl.addEventListener(ev, cancelHold));
   $('startBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
   $('pingBtn').onclick = seismicPing;
   $('impBtn').onclick = implode;
@@ -1445,6 +1573,7 @@
   $('playBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
   newRun();
   running = false;
+  document.documentElement.classList.remove('playing');
   $('wBank').textContent = '$' + bank;
   renderTrees(); drawBay();
   hud();
