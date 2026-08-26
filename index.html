@@ -698,12 +698,8 @@
     for (let y = y0; y <= y1; y++)
       for (let x = 0; x < COLS; x++)
         if (getTile(x, y) >= ORE_BASE && !pinged.has(key(x, y))) { litAdd(key(x, y)); found++; }
-    // shockwave
-    for (let i = 0; i < 26; i++) {
-      const a = (i / 26) * Math.PI * 2;
-      spawn(p.px + 8, p.py + 8, Math.cos(a) * 150, Math.sin(a) * 150 - 20, 2, '#7fe6ff', .45);
-    }
-    shake = 1.6;
+    pingWave(p.px, p.py);
+    fx('p:' + Math.round(p.px) + ',' + Math.round(p.py));
     flash(found ? 'PING: ' + found + ' seam' + (found === 1 ? '' : 's') + ' lit' : 'PING: dead rock');
     hud();
   }
@@ -727,11 +723,8 @@
         cleared++;
       }
     p.drilling = null; p.prog = 0; p.chunks = 0;
-    for (let i = 0; i < 44; i++) {
-      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 90 * r;
-      spawn(p.px + 8, p.py + 8, Math.cos(a) * sp, Math.sin(a) * sp - 30, 2, '#d08cf0', .5 + Math.random() * .4);
-    }
-    shake = 1.2 + r * 0.25;
+    implodeWave(p.px, p.py, r);
+    fx('i:' + Math.round(p.px) + ',' + Math.round(p.py) + ',' + r);
     flash(cleared
       ? 'IMPLOSION: ' + cleared + ' tiles down' + (resisted ? ', ' + resisted + ' too hard' : '')
       : resisted ? 'IMPLOSION: rock held. Bit is underrated.' : 'IMPLOSION: nothing to collapse.');
@@ -805,6 +798,7 @@
   }
 
   function burst(tx, ty, id) {
+    fx('b:' + tx + ',' + ty + ',' + id);
     for (let i = 0; i < 9; i++) chipAt(tx, ty, i, id, 1.6);
     if (isOre(id) || isArti(id))
       for (let i = 0; i < 6; i++)
@@ -813,6 +807,30 @@
               isArti(id) ? ARTI[id].c : ORES[id].c, .7 + Math.random()*.5);
   }
 
+  // effects are logged as events so a controller can play them itself, in full,
+  // instead of watching a still picture of someone else's fireworks
+  const fx = (line) => { if (MP && MP.fxlog) MP.fxlog.push(line); };
+  function artiRing(x, y, colour) {
+    for (let i = 0; i < 22; i++) {
+      const ang = (i / 22) * Math.PI * 2;
+      spawn(x*T + T/2, y*T + T/2, Math.cos(ang) * 90, Math.sin(ang) * 90 - 20, 2, colour, .6);
+    }
+    shake = Math.max(shake, 1.1);
+  }
+  function pingWave(px, py) {
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2;
+      spawn(px + 8, py + 8, Math.cos(a) * 150, Math.sin(a) * 150 - 20, 2, '#7fe6ff', .45);
+    }
+    shake = Math.max(shake, 1.6);
+  }
+  function implodeWave(px, py, r) {
+    for (let i = 0; i < 44; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 90 * r;
+      spawn(px + 8, py + 8, Math.cos(a) * sp, Math.sin(a) * sp - 30, 2, '#d08cf0', .5 + Math.random() * .4);
+    }
+    shake = Math.max(shake, 1.2 + r * 0.25);
+  }
   function emberBurst(tx, ty) {
     for (let i = 0; i < 14; i++)
       spawn(tx*T + Math.random()*T, ty*T + Math.random()*T,
@@ -954,11 +972,8 @@
         found[a.key]++;
         pop(x, y, a.name.toUpperCase());
         flash('TECH RECOVERED: ' + a.name.toUpperCase() + '  ' + found[a.key] + '/' + a.need);
-        for (let i = 0; i < 22; i++) {
-          const ang = (i / 22) * Math.PI * 2;
-          spawn(x*T + T/2, y*T + T/2, Math.cos(ang) * 90, Math.sin(ang) * 90 - 20, 2, a.c, .6);
-        }
-        shake = Math.max(shake, 1.1);
+        artiRing(x, y, a.c);
+        fx('a:' + x + ',' + y + ',' + id);
       }
     } else if (isOre(id)) {
       const o = ORES[id];
@@ -972,6 +987,7 @@
       setTile(x, y, LAVA);
       dmg.delete(key(x, y));
       emberBurst(x, y);
+      fx('e:' + x + ',' + y);
       shake = 1.4;
     }
   }
@@ -1921,6 +1937,7 @@
     snapshot(slot, others, full) {
       const m = slot.mp;
       m.log = m.log || []; m.plog = m.plog || []; m.poplog = m.poplog || [];
+      m.fxlog = m.fxlog || [];
       if (full) { m.sent = 0; m.psent = 0; }
       m.seq = (m.seq || 0) + 1;
       const snap = {
@@ -1930,6 +1947,8 @@
         cut: m.log.slice(m.sent || 0),
         lit: m.plog.slice(m.psent || 0),
         pop: m.poplog.slice(m.popsent || 0),      // never replayed on a resync
+        fx: m.fxlog.slice(m.fxsent || 0),
+        shake: +slot.shake.toFixed(2),
         dmg: [...slot.dmg.entries()],
         lvl: slot.lvl,
         others: others || [],
@@ -1938,13 +1957,14 @@
                       burn:slot.p.burn, depth:slot.p.depth } : null,
       };
       m.sent = m.log.length; m.psent = m.plog.length; m.popsent = m.poplog.length;
+      m.fxsent = m.fxlog.length;
       return snap;
     },
     resetLog(slot, sharedLog) {
       slot.mp.log = sharedLog ? sharedLog.log : [];
       slot.mp.plog = sharedLog ? sharedLog.plog : [];
-      slot.mp.poplog = [];
-      slot.mp.sent = 0; slot.mp.psent = 0; slot.mp.popsent = 0;
+      slot.mp.poplog = []; slot.mp.fxlog = [];
+      slot.mp.sent = 0; slot.mp.psent = 0; slot.mp.popsent = 0; slot.mp.fxsent = 0;
     },
     // returns false when a delta went missing, so the caller can ask for a resync
     applySnapshot(slot, snap) {
@@ -1957,17 +1977,24 @@
       const expect = (slot.mp.rx || 0) + 1;
       if (!fresh && snap.seq !== expect) { slot.mp.rx = snap.seq; return false; }
       slot.mp.rx = snap.seq;
-      if (snap.pop && snap.pop.length && !fresh) {
+      if (!fresh && ((snap.fx && snap.fx.length) || (snap.pop && snap.pop.length))) {
         loadSlot(slot);
-        for (const line of snap.pop) {
+        for (const line of (snap.fx || [])) {
+          const kind = line[0], n = line.slice(2).split(',').map(Number);
+          if (kind === 'b') burst(n[0], n[1], n[2]);
+          else if (kind === 'e') emberBurst(n[0], n[1]);
+          else if (kind === 'p') pingWave(n[0], n[1]);
+          else if (kind === 'i') implodeWave(n[0], n[1], n[2]);
+          else if (kind === 'a') artiRing(n[0], n[1], (ARTI[n[2]] || {}).c || '#fff');
+        }
+        for (const line of (snap.pop || [])) {
           const bar = line.indexOf('|');
           const [x, y] = line.slice(0, bar).split(',').map(Number);
-          const text = line.slice(bar + 1);
-          burst(x, y, getTile(x, y));            // the ore is still in place right now
-          pop(x, y, text);
+          pop(x, y, line.slice(bar + 1));
         }
         saveSlot(slot);
       }
+      if (typeof snap.shake === 'number') slot.shake = Math.max(slot.shake, snap.shake);
       for (const line of snap.cut) {
         const i = line.lastIndexOf(':');
         slot.world.set(line.slice(0, i), +line.slice(i + 1));
@@ -2017,6 +2044,8 @@
       loadSlot(slot);
       updatePops(dt);
       updateParts(dt);
+      shake = Math.max(0, shake - dt * 4);
+      lavaAnim += dt;                       // keeps molten rock pulsing on the phone
       saveSlot(slot);
     },
     mobileZoom(slot) {
