@@ -938,6 +938,12 @@
     right: (sx, sy, wob) => [sx+11+wob, sy+9,  1,  0],
   };
 
+  function bitImpact(sx, sy, face) {
+    const axis = FACE_AXIS[face]; if (!axis) return null;
+    const [ox, oy, dx, dy] = axis(sx, sy, 0);
+    return [ox + dx * T, oy + dy * T];
+  }
+
   function paintBit(c, sx, sy, face, wob, drilling) {
     const axis = FACE_AXIS[face]; if (!axis) return;
     const [ox, oy, dx, dy] = axis(sx, sy, wob);
@@ -956,19 +962,21 @@
       return;
     }
 
-    // laser: a stub at rest, reaching a full tile into the rock while cutting
-    const len = drilling ? T : b.len;
+    // the laser only exists while it is cutting -- nothing shows at rest
+    if (!drilling) return;
+    const len = T;
     axisRect(c, ox, oy, dx, dy, len, b.w + 4, 'rgba(' + b.glow + ',.20)');
     axisRect(c, ox, oy, dx, dy, len, b.w + 2, 'rgba(' + b.glow + ',.45)');
     axisRect(c, ox, oy, dx, dy, len, b.w, 'rgb(' + b.glow + ')');
     axisRect(c, ox, oy, dx, dy, len, Math.max(1, b.w - 3), b.core);
-    if (b.ultra && drilling) {
-      // the impact point flares
-      const ix = ox + dx * len, iy = oy + dy * len;
-      c.globalAlpha = .5; c.fillStyle = b.core;
-      c.fillRect(Math.round(ix - 3), Math.round(iy - 3), 6, 6);
-      c.globalAlpha = 1;
-    }
+    // every laser tier flares where it lands, the top tier hardest
+    const ix = ox + dx * len, iy = oy + dy * len;
+    const fl = b.ultra ? 3 : 2;
+    c.globalAlpha = b.ultra ? .5 : .34; c.fillStyle = b.core;
+    c.fillRect(Math.round(ix - fl), Math.round(iy - fl), fl*2, fl*2);
+    c.globalAlpha = b.ultra ? .28 : .18;
+    c.fillRect(Math.round(ix - fl - 2), Math.round(iy - fl - 2), fl*2 + 4, fl*2 + 4);
+    c.globalAlpha = 1;
   }
 
   function paintWheels(c, sx, sy, phase) {
@@ -1061,17 +1069,28 @@
                  p.drilling && Math.random() < .5 ? 1 : 0, coolTint(),
                  { drilling: !!p.drilling, burn: p.burn, phase: animT });
 
-      // tier-10 lance: a bounded shower of sparks and a soft halo at the cut
-      if (p.drilling && maxTier() === TOP_TIER) {
-        if (Math.random() < .55) {
-          const a = Math.random() * Math.PI * 2;
-          spawn(p.px + 8, p.py + 8, Math.cos(a) * 70, Math.sin(a) * 70 - 20,
-                1 + (Math.random() < .3 ? 1 : 0), Math.random() < .4 ? '#eaffff' : '#7fe6ff', .25 + Math.random() * .3);
+      // sparks off the impact point -- small, and thrown back toward the rig
+      const b = bitLook();
+      if (p.drilling && b.laser) {
+        const hit = bitImpact(p.px, p.py, p.face);
+        if (hit) {
+          const ultra = !!b.ultra;
+          const n = ultra ? 2 : 1;
+          for (let i = 0; i < n; i++) {
+            if (Math.random() > (ultra ? .75 : .5)) continue;
+            const a = Math.random() * Math.PI * 2, sp = 25 + Math.random() * (ultra ? 70 : 40);
+            spawn(hit[0], hit[1], Math.cos(a) * sp, Math.sin(a) * sp - 18,
+                  1 + (ultra && Math.random() < .3 ? 1 : 0),
+                  Math.random() < .4 ? b.core : 'rgb(' + b.glow + ')',
+                  .18 + Math.random() * (ultra ? .3 : .18));
+          }
+          if (ultra) {
+            const hg = ctx.createRadialGradient(hit[0], hit[1], 2, hit[0], hit[1], 22);
+            hg.addColorStop(0, 'rgba(127,230,255,.24)');
+            hg.addColorStop(1, 'rgba(127,230,255,0)');
+            ctx.fillStyle = hg; ctx.fillRect(hit[0] - 24, hit[1] - 24, 48, 48);
+          }
         }
-        const hg = ctx.createRadialGradient(p.px + 8, p.py + 8, 2, p.px + 8, p.py + 8, 26);
-        hg.addColorStop(0, 'rgba(127,230,255,.22)');
-        hg.addColorStop(1, 'rgba(127,230,255,0)');
-        ctx.fillStyle = hg; ctx.fillRect(p.px - 20, p.py - 20, 56, 56);
       }
     }
 
