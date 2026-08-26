@@ -48,6 +48,8 @@
     font-size:10px; letter-spacing:1px; padding:6px 10px; cursor:pointer; margin-left:10px }
   .ping:hover:not(:disabled){ border-color:#7fe6ff; background:#25404d }
   .ping:disabled{ opacity:.4; cursor:not-allowed }
+  .imp{ background:#2b1d33; border-color:#5a2f60; color:#d08cf0 }
+  .imp:hover:not(:disabled){ border-color:#d08cf0; background:#3d2647 }
   .ping[hidden]{ display:none }
   .timebar{ height:4px; background:#22222c }
   .timebar i{ display:block; height:100%; background:var(--amber); width:100% }
@@ -125,6 +127,7 @@
       <div class="stat cash"><span>Bank</span><b id="bank">$0</b></div>
       <div class="flash" id="flash"></div>
       <button class="ping" id="pingBtn" hidden>PING</button>
+      <button class="ping imp" id="impBtn" hidden>IMPLODE</button>
     </div>
     <div class="timebar"><i id="timebar"></i></div>
   </div>
@@ -248,11 +251,15 @@
     { key:'siphon',name:'LAVA SIPHON', max:1, base:420, tool:true,
       desc:l => l ? 'Drains lava for $' + LAVA_VALUE + '. 1 cell each, leaves obsidian.'
                   : 'Drains a lava tile for cash and leaves obsidian behind. 1 cell each.' },
+    { key:'implode',name:'IMPLOSION DEVICE', max:5, base:520, unlock:true,
+      desc:l => l ? 'Q or the button. 1 cell collapses every rated tile within ' + implodeRadius() +
+                    ' tiles, ore and all.'
+                  : 'A single charge caves in the rock around you. Starts at radius 3, +1 per tier.' },
     { key:'ping',  name:'SEISMIC PING', max:1, base:300, tool:true,
       desc:l => l ? 'PING or SPACE. 1 cell lights every ore on screen, for good.'
                   : 'Pulses the rock. Ore it finds stays visible for the rest of the run.' },
   ];
-  const lvl = { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0 };
+  const lvl = { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0, implode:0 };
   // size and market multiply everything else, so they climb faster
   const costOf = (t, l) => Math.round(t.base * Math.pow(t.rate || 1.65, l));
 
@@ -270,7 +277,9 @@
   const safeDepth  = () => 50 + 45 * lvl.cool;
   const fuelMax    = () => 3 + 2 * lvl.fuel;
   // the gauge only means something once something can spend it
-  const hasFuelTool = () => lvl.climb > 0 || lvl.siphon > 0 || lvl.ping > 0;
+  const hasFuelTool = () => lvl.climb > 0 || lvl.siphon > 0 || lvl.ping > 0 || lvl.implode > 0;
+  // tier 1 collapses a radius of 3, each tier after reaches one tile further
+  const implodeRadius = () => lvl.implode ? 2 + lvl.implode : 0;
   const canClimb   = () => lvl.climb > 0 && p && p.fuel > 0;
   const RUN_TIME   = 60;
 
@@ -382,6 +391,36 @@
     }
     shake = 1.6;
     flash(found ? 'PING: ' + found + ' seam' + (found === 1 ? '' : 's') + ' lit' : 'PING: dead rock');
+    hud();
+  }
+
+  function implode() {
+    if (!running || !lvl.implode) return;
+    if (p.fuel <= 0) { flash('Implosion needs a cell.'); return; }
+    p.fuel--;
+    const r = implodeRadius();
+    let cleared = 0, resisted = 0;
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (dx*dx + dy*dy > r*r) continue;              // round blast, not a square
+        const x = p.x + dx, y = p.y + dy;
+        if (x < 0 || x >= COLS || y < SURFACE) continue;
+        const id = getTile(x, y);
+        if (!isRock(id)) continue;
+        // the charge collapses rock, it does not upgrade the bit
+        if (tierOf(id) > maxTier()) { resisted++; continue; }
+        breakTile(x, y, false);
+        cleared++;
+      }
+    p.drilling = null; p.prog = 0; p.chunks = 0;
+    for (let i = 0; i < 44; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 90 * r;
+      spawn(p.px + 8, p.py + 8, Math.cos(a) * sp, Math.sin(a) * sp - 30, 2, '#d08cf0', .5 + Math.random() * .4);
+    }
+    shake = 1.2 + r * 0.25;
+    flash(cleared
+      ? 'IMPLOSION: ' + cleared + ' tiles down' + (resisted ? ', ' + resisted + ' too hard' : '')
+      : resisted ? 'IMPLOSION: rock held. Bit is underrated.' : 'IMPLOSION: nothing to collapse.');
     hud();
   }
 
@@ -546,6 +585,7 @@
     if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
     keys[k] = true;
     if (k === ' ' || k === 'e') seismicPing();
+    if (k === 'q') implode();
   });
   addEventListener('keyup', e => {
     const k = e.key.toLowerCase();
@@ -732,6 +772,10 @@
     const pb = $('pingBtn');
     pb.hidden = !lvl.ping;
     pb.disabled = !running || p.fuel <= 0;
+
+    const ib = $('impBtn');
+    ib.hidden = !lvl.implode;
+    ib.disabled = !running || p.fuel <= 0;
 
     const box = $('fuelBox');
     box.hidden = !hasFuelTool();
@@ -934,7 +978,7 @@
       const btn = document.createElement('button');
       btn.className = 'buy';
       btn.textContent = maxed ? (t.tool ? 'FITTED' : 'MAXED') : 'UPGRADE  $' + cost;
-      if (t.tool && !maxed) btn.textContent = 'UNLOCK  $' + cost;
+      if ((t.tool || t.unlock) && l === 0) btn.textContent = 'UNLOCK  $' + cost;
       btn.disabled = maxed || bank < cost;
       btn.onclick = () => {
         if (bank < cost || maxed) return;
@@ -970,6 +1014,7 @@
 
   $('startBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
   $('pingBtn').onclick = seismicPing;
+  $('impBtn').onclick = implode;
 
 
   // boot to the title card; the workshop only opens between runs
