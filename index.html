@@ -739,6 +739,7 @@
   }
 
   let p, cam, shake = 0, flashT = 0, running = false, lavaAnim = 0, animT = 0;
+  let inMatch = false;          // true on a host running a match and on a controller
   // when MP is set this engine instance is one player inside a match, so anything
   // that writes to the single-player DOM is redirected or skipped
   let MP = null;
@@ -2006,6 +2007,8 @@
     tileAt(slot, x, y) { loadSlot(slot); const v = getTile(x, y); saveSlot(slot); return v; },
     camOf(slot) { return slot.cam; },
     setHooks(input, action) { inputHook = input; actionHook = action; },
+    // hand the frame over to the match runner (or the controller mirror)
+    matchMode(on) { inMatch = !!on; if (!on) MP = null; },
     controllerMode(on) { document.documentElement.classList.toggle('playing', !!on); },
     litTools(ping, imp) {
       $('padPing').classList.toggle('lit', !!ping);
@@ -2032,10 +2035,13 @@
 
   let last = performance.now();
   requestAnimationFrame(function loop(now) {
+    requestAnimationFrame(loop);
     const dt = Math.min(.05, (now - last) / 1000);
     last = now;
+    // during a match the runner owns stepping and painting -- if this loop also
+    // ran, it would step whichever slot happened to be loaded and paint over it
+    if (inMatch) return;
     update(dt); render();
-    requestAnimationFrame(loop);
   });
 })();
 </script>
@@ -2624,6 +2630,7 @@
   function startMatch() {
     if (!match.players.length) return;
     phase = 'run'; round = 1;
+    TM.matchMode(true);
     match.players.forEach(pl => { pl.game = TM.makeSlot(); pl.done = false; pl.ready = false; });
     NET.toAll({ t:'begin', settings: match.settings });
     beginRound();
@@ -2816,11 +2823,14 @@
       players.forEach(pl => label(g, pl, null));
     } else {
       const w = Math.floor(cv.width / players.length);
+      // a wide column zooms in rather than leaving the shaft floating in space
+      const z = Math.max(1, w / TM.WORLD_W);
       players.forEach((pl, i) => {
         const view = { x:i * w, y:0, w, h:cv.height };
+        pl.game.mp.zoom = z;
         const target = TM.trackTarget(pl.game);
         TM.setCam(pl.game, target.x, Math.max(-40, target.y));
-        TM.paint(pl.game, view, 1);
+        TM.paint(pl.game, view, z);
         g.strokeStyle = hex(pl.color); g.lineWidth = 2;
         g.strokeRect(view.x + 1, 1, w - 2, cv.height - 2);
         label(g, pl, view);
@@ -2861,6 +2871,7 @@
   $('msStop').onclick = () => { if (phase === 'shop') finishMatch(); };
   $('mdAgain').onclick = () => {
     phase = 'lobby'; cancelAnimationFrame(raf); raf = 0;
+    TM.matchMode(false);
     match.players.forEach(pl => { pl.game = null; pl.ready = false; });
     NET.toAll({ t:'phase', phase:'lobby' });
     show('lobby'); renderSlots();
@@ -2927,6 +2938,7 @@
       if (TM.layoutBtnEl().parentNode !== viewHost) viewHost.appendChild(TM.layoutBtnEl());
       TM.controllerMode(true);
       TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
+      TM.matchMode(true);
       if (!mirror) mirror = TM.makeSlot();
       camSmooth = null; ghosts = [];
       requestAnimationFrame(() => {
