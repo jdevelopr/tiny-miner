@@ -183,6 +183,26 @@
   html.touch .wfoot .go{ padding:13px 22px; font-size:11px }
   html.touch .modal{ position:fixed; z-index:7; padding:18px }
   html.touch.playing .pad{ visibility:visible }
+
+  /* WIDE layout: full-width left/right, half-height up/down beneath,
+     tools banished to the bottom corners */
+  html.touch.wide .pad{ grid-template-columns:1fr 1fr; gap:10px }
+  html.touch.wide .dpad{ grid-column:1 / -1; grid-row:2; width:100%; justify-self:stretch;
+                         grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:8px }
+  html.touch.wide .dpad .c{ display:none }
+  html.touch.wide .dpad .l{ grid-area:1/1; height:clamp(62px, 15vh, 88px) }
+  html.touch.wide .dpad .r{ grid-area:1/2; height:clamp(62px, 15vh, 88px) }
+  html.touch.wide .dpad .u{ grid-area:2/1; height:clamp(34px, 8vh, 46px) }
+  html.touch.wide .dpad .d{ grid-area:2/2; height:clamp(34px, 8vh, 46px) }
+  html.touch.wide .dpad button{ font-size:20px }
+  html.touch.wide .abtns{ grid-column:1 / -1; grid-row:3; width:100%; justify-self:stretch;
+                          justify-content:space-between; gap:0 }
+  html.touch.wide #padPing, html.touch.wide #padImp{ transform:none }
+
+  /* layout switch, only ever shown on a touch device */
+  .layoutBtn{ display:none }
+  html.touch .layoutBtn{ display:inline-block; background:#1b1826; border:1px solid var(--line);
+    color:var(--dim); font:inherit; font-size:10px; letter-spacing:1px; padding:11px 12px; cursor:pointer }
   html.touch .mcard{ max-width:none; width:100% }
 
   /* tech assembled -- sits over the workshop until acknowledged */
@@ -251,6 +271,7 @@
     </div>
     <div class="wfoot">
       <div class="note" id="wNote"></div>
+      <button class="layoutBtn" id="layoutBtn">CONTROLS</button>
       <button class="go" id="startBtn">DEPLOY</button>
     </div>
   </div>
@@ -299,9 +320,12 @@
   const WORLD_W = COLS * T;
   // a phone screen is small, so the camera pushes in and tracks the rig on both axes
   const TOUCH = matchMedia('(pointer: coarse)').matches;
-  const ZOOM = TOUCH ? 1.9 : 1;
-  const viewW = () => cvs.width / ZOOM;
-  const viewH = () => cvs.height / ZOOM;
+  // starts tight so a small rig is readable, then pulls back a step per drill-size
+  // level until the whole shaft is in frame again
+  const ZOOM_NEAR = 1.9, ZOOM_FAR = 1.0, ZOOM_STEP = 0.075;
+  const zoom = () => TOUCH ? Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * lvl.size) : 1;
+  const viewW = () => cvs.width / zoom();
+  const viewH = () => cvs.height / zoom();
   const camTargetX = () => WORLD_W <= viewW() ? 0
     : Math.max(0, Math.min(WORLD_W - viewW(), p.px + 8 - viewW() / 2));
   const camTargetY = () => p.py - viewH() * 0.42;
@@ -1289,7 +1313,7 @@
     ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, cvs.width, cvs.height);
     const sh = shake > 0 ? (Math.random()*2-1) * shake : 0;
     ctx.save();
-    ctx.scale(ZOOM, ZOOM);
+    ctx.scale(zoom(), zoom());
     ctx.translate(-Math.round(cam.x) + sh, -Math.round(cam.y) + sh);
 
     if (cam.y < SURFACE*T + 60) {
@@ -1541,6 +1565,21 @@
   // ---------- touch controls ----------
   // the shell only exists for coarse pointers; desktop keeps keyboard + HUD buttons
   if (TOUCH) document.documentElement.classList.add('touch');
+
+  // which control layout this device prefers, remembered between visits
+  const LAYOUT_KEY = 'tinyminer.layout';
+  let layout = 'dpad';
+  try { layout = localStorage.getItem(LAYOUT_KEY) || 'dpad'; } catch (e) {}
+  function applyLayout() {
+    document.documentElement.classList.toggle('wide', layout === 'wide');
+    $('layoutBtn').textContent = layout === 'wide' ? 'CONTROLS: WIDE' : 'CONTROLS: D-PAD';
+  }
+  applyLayout();
+  $('layoutBtn').onclick = () => {
+    layout = layout === 'wide' ? 'dpad' : 'wide';
+    try { localStorage.setItem(LAYOUT_KEY, layout); } catch (e) {}
+    applyLayout();
+  };
 
   const DIR_KEY = { up:'w', down:'s', left:'a', right:'d' };
   const TAP_MIN = 130;                          // a tap is held this long even if you let go sooner
