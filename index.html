@@ -238,7 +238,7 @@
                         : 'Moves and falls ' + Math.round(0.12*l*100) + '% faster than stock treads.' },
     { key:'radar', name:'RADAR', max:5, base:150,
       desc:l => l === 0 ? 'No scan. Ore is invisible until exposed.'
-                        : 'Shows ore through ' + (l+1) + ' tiles of rock.' },
+                        : 'Shows ore through ' + (l+1) + ' tiles of rock, and what it finds stays lit.' },
     { key:'market',name:'MARKET RESEARCH', max:5, base:200, rate:1.9,
       desc:l => 'Ore sells for +' + (l*18) + '%.' },
     { key:'cool',  name:'COOLING SYSTEM', max:5, base:170,
@@ -373,6 +373,26 @@
   // ---------- state ----------
   // ore uncovered by a seismic ping stays on the map for the rest of the run
   const pinged = new Set();
+
+  // anything the radar sweeps past -- ore or lava -- is logged the way a ping logs it,
+  // so the map fills in behind you instead of going dark once you move on
+  function markSeen() {
+    const r = scanRange();
+    const reach = Math.max(r, 3);
+    for (let dy = -reach; dy <= reach; dy++)
+      for (let dx = -reach; dx <= reach; dx++) {
+        const x = p.x + dx, y = p.y + dy;
+        if (x < 0 || x >= COLS || y < SURFACE) continue;
+        const k = key(x, y);
+        if (pinged.has(k)) continue;
+        const id = getTile(x, y);
+        if (id === LAVA) {
+          if (Math.abs(dx) + Math.abs(dy) <= 3) pinged.add(k);
+        } else if (id >= ORE_BASE && r && dx*dx + dy*dy <= r*r) {
+          pinged.add(k);
+        }
+      }
+  }
 
   function seismicPing() {
     if (!running || !lvl.ping) return;
@@ -746,6 +766,7 @@
       }
     }
 
+    markSeen();
     p.depth = Math.max(0, p.y - SURFACE + 1);
     p.best = Math.max(p.best, p.depth);
     shake = Math.max(0, shake - dt*4);
