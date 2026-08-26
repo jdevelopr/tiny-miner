@@ -179,7 +179,9 @@
 
   // ---------- tiles ----------
   // rock tiers 1..6 share ids 1..6; ore ids 10..15 map to tier (id-9)
-  const AIR = 0, BEDROCK = 7, LAVA = 8;
+  const AIR = 0, BEDROCK = 90, LAVA = 91;
+  const TOP_TIER = 10;          // deepest rock tier
+  const ORE_BASE = 100;         // ore id = ORE_BASE + tier
 
   const ROCK = {
     1: {name:'dirt',        hp:0.30, c:'#6b4a2f', c2:'#523821'},
@@ -188,17 +190,25 @@
     4: {name:'hard stone',  hp:1.20, c:'#3f4450', c2:'#31353f'},
     5: {name:'basalt',      hp:1.70, c:'#37323f', c2:'#2a2632'},
     6: {name:'obsidian',    hp:2.30, c:'#2b2635', c2:'#1e1a27'},
+    7: {name:'serpentine',  hp:3.10, c:'#233a33', c2:'#1a2b26'},
+    8: {name:'garnetite',   hp:4.20, c:'#3c2130', c2:'#2c1824'},
+    9: {name:'mantle glass',hp:5.60, c:'#2e2350', c2:'#221a3c'},
+    10:{name:'starmetal',   hp:7.40, c:'#3a4358', c2:'#2b3244'},
   };
   const ORES = {
-    10:{name:'coal',    tier:1, value:10,   c:'#191920'},
-    11:{name:'copper',  tier:2, value:32,   c:'#d2803f'},
-    12:{name:'iron',    tier:3, value:80,   c:'#cfc2b0'},
-    13:{name:'emerald', tier:4, value:200,  c:'#3ddc84'},
-    14:{name:'ruby',    tier:5, value:480,  c:'#ff4d6d'},
-    15:{name:'diamond', tier:6, value:1100, c:'#7fe6ff'},
+    101:{name:'coal',     tier:1,  value:10,    c:'#191920'},
+    102:{name:'copper',   tier:2,  value:32,    c:'#d2803f'},
+    103:{name:'iron',     tier:3,  value:80,    c:'#cfc2b0'},
+    104:{name:'emerald',  tier:4,  value:200,   c:'#3ddc84'},
+    105:{name:'ruby',     tier:5,  value:480,   c:'#ff4d6d'},
+    106:{name:'diamond',  tier:6,  value:1100,  c:'#7fe6ff'},
+    107:{name:'amethyst', tier:7,  value:2400,  c:'#b06cf0'},
+    108:{name:'meteorite',tier:8,  value:5200,  c:'#ff9b54'},
+    109:{name:'plasmite', tier:9,  value:11000, c:'#7dffb0'},
+    110:{name:'starcore', tier:10, value:24000, c:'#fff2a8'},
   };
-  const tierOf  = id => id >= 10 ? ORES[id].tier : (id >= 1 && id <= 6 ? id : 0);
-  const isRock  = id => (id >= 1 && id <= 6) || id >= 10;
+  const tierOf  = id => id >= ORE_BASE ? ORES[id].tier : (id >= 1 && id <= TOP_TIER ? id : 0);
+  const isRock  = id => (id >= 1 && id <= TOP_TIER) || id >= ORE_BASE;
   const isSolidId = id => id !== AIR;
 
   // ---------- upgrades ----------
@@ -207,7 +217,7 @@
   const TREES = [
     { key:'speed', name:'DRILL SPEED', max:12, base:110,
       desc:l => 'Cuts ' + Math.round((1 - 1/(1 + .17*l))*100) + '% faster than a stock bit.' },
-    { key:'size',  name:'DRILL SIZE', max:12, base:340,
+    { key:'size',  name:'DRILL SIZE', max:12, base:340, rate:1.9,
       desc:l => { if (l === 0) return 'Cuts one tile at a time.';
         const words = ['Adjacent rock', 'the tile beyond', 'the next tile out', 'the tile past that'];
         const parts = [];
@@ -216,21 +226,21 @@
           if (n) parts.push((r ? words[r] : words[0]) + ' takes ' + n + '/3');
         }
         return parts.join(', ') + ' of every cut, and keeps it.'; } },
-    { key:'power', name:'DRILL POWER', max:5, base:150,
-      desc:l => { const t = Math.min(6, 1+l);
-        return 'Rated to ' + ROCK[t].name + ' (' + ORES[9+t].name + ')' +
-               (t < 6 ? '. Can overdrive into ' + ROCK[t+1].name + ' at a crawl.' : '.'); } },
+    { key:'power', name:'DRILL POWER', max:9, base:150,
+      desc:l => { const t = Math.min(TOP_TIER, 1+l);
+        return 'Rated to ' + ROCK[t].name + ' (' + ORES[ORE_BASE+t].name + ')' +
+               (t < TOP_TIER ? '. Can overdrive into ' + ROCK[t+1].name + ' at a crawl.' : '.'); } },
     { key:'radar', name:'RADAR', max:5, base:150,
       desc:l => l === 0 ? 'No scan. Ore is invisible until exposed.'
                         : 'Shows ore through ' + (l+1) + ' tiles of rock.' },
-    { key:'market',name:'MARKET RESEARCH', max:5, base:200,
+    { key:'market',name:'MARKET RESEARCH', max:5, base:200, rate:1.9,
       desc:l => 'Ore sells for +' + (l*18) + '%.' },
     { key:'cool',  name:'COOLING SYSTEM', max:5, base:170,
       desc:l => 'Runs cool to ' + (50 + l*45) + 'm before heat starts dragging the drill.' },
     { key:'fuel',  name:'FUEL CELLS', max:5, base:130,
       desc:l => 'Carries ' + (3 + l*2) + ' cells per run. Powers climbing and the siphon.' },
     { key:'climb', name:'CLIMBING TOOL', max:1, base:260, tool:true,
-      desc:l => l ? 'Hold up to climb. 1 cell per tile, and gravity waits.'
+      desc:l => l ? 'Press up in open air to climb. 1 cell per tile, and gravity waits. A hold that cut rock will not climb.'
                   : 'Unlocks upward movement. Burns 1 cell per tile climbed.' },
     { key:'siphon',name:'LAVA SIPHON', max:1, base:420, tool:true,
       desc:l => l ? 'Drains lava for $' + LAVA_VALUE + '. 1 cell each, leaves obsidian.'
@@ -240,11 +250,12 @@
                   : 'Pulses the rock. Ore it finds stays visible for the rest of the run.' },
   ];
   const lvl = { speed:0, size:0, power:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0 };
-  const costOf = (t, l) => Math.round(t.base * Math.pow(1.65, l));
+  // size and market multiply everything else, so they climb faster
+  const costOf = (t, l) => Math.round(t.base * Math.pow(t.rate || 1.65, l));
 
   const drillMult  = () => 1 + 0.17 * lvl.speed;
   const boreRadius = () => lvl.size;
-  const maxTier    = () => Math.min(6, 1 + lvl.power);
+  const maxTier    = () => Math.min(TOP_TIER, 1 + lvl.power);
   // one tier above the bit's rating is possible, just brutal
   const OVERDRIVE  = 0.16;
   const canCut     = t => t <= maxTier() + 1;
@@ -300,7 +311,10 @@
     let t = Math.round(1 + base + (n * 2.4 - 1.0));
     if (depth > 150) t = Math.max(t, 3);   // no dirt or soft stone this deep
     if (depth > 220) t = Math.max(t, 4);
-    return Math.max(1, Math.min(6, t));
+    if (depth > 300) t = Math.max(t, 5);
+    if (depth > 380) t = Math.max(t, 6);
+    if (depth > 460) t = Math.max(t, 7);
+    return Math.max(1, Math.min(TOP_TIER, t));
   }
 
   function genTile(x, y) {
@@ -312,7 +326,7 @@
     const t = rockTier(x, y, depth);
     // ore chance dips slightly for the toughest rock so diamond stays a find
     const chance = 0.105 - t * 0.006;
-    return hash(x, y, 7 + seed) < chance ? 9 + t : t;
+    return hash(x, y, 7 + seed) < chance ? ORE_BASE + t : t;
   }
 
   function getTile(x, y) {
@@ -335,7 +349,7 @@
       return d <= 3;
     }
     const r = scanRange();
-    if (r && id >= 10) {
+    if (r && id >= ORE_BASE) {
       const dx = x - p.x, dy = y - p.y;
       return dx*dx + dy*dy <= r*r;
     }
@@ -355,7 +369,7 @@
     let found = 0;
     for (let y = y0; y <= y1; y++)
       for (let x = 0; x < COLS; x++)
-        if (getTile(x, y) >= 10 && !pinged.has(key(x, y))) { pinged.add(key(x, y)); found++; }
+        if (getTile(x, y) >= ORE_BASE && !pinged.has(key(x, y))) { pinged.add(key(x, y)); found++; }
     // shockwave
     for (let i = 0; i < 26; i++) {
       const a = (i / 26) * Math.PI * 2;
@@ -411,7 +425,7 @@
   }
 
   function chunkColor(id) {
-    if (id >= 10) return Math.random() < .45 ? ORES[id].c : ROCK[ORES[id].tier].c;
+    if (id >= ORE_BASE) return Math.random() < .45 ? ORES[id].c : ROCK[ORES[id].tier].c;
     return Math.random() < .5 ? ROCK[id].c : ROCK[id].c2;
   }
 
@@ -429,7 +443,7 @@
 
   function burst(tx, ty, id) {
     for (let i = 0; i < 9; i++) chipAt(tx, ty, i, id, 1.6);
-    if (id >= 10)
+    if (id >= ORE_BASE)
       for (let i = 0; i < 6; i++)
         spawn(tx*T + 4 + Math.random()*8, ty*T + 4 + Math.random()*8,
               (Math.random()*2-1)*30, -Math.random()*70 - 20, 2, ORES[id].c, .7 + Math.random()*.5);
@@ -517,13 +531,21 @@
   }
 
   const keys = {};
+  // one hold of UP does one job: it either cuts the rock overhead or it climbs.
+  // drilling upward latches this, so breaking through never spends a cell by surprise.
+  let upSpent = false;
+  const upHeld = () => !!(keys['w'] || keys['arrowup']);
   addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
     if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
     keys[k] = true;
     if (k === ' ' || k === 'e') seismicPing();
   });
-  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  addEventListener('keyup', e => {
+    const k = e.key.toLowerCase();
+    keys[k] = false;
+    if (k === 'w' || k === 'arrowup') upSpent = false;   // fresh press = fresh intent
+  });
   const held = () =>
     (keys['a']||keys['arrowleft'])  ? 'left'  :
     (keys['d']||keys['arrowright']) ? 'right' :
@@ -542,7 +564,7 @@
     setTile(x, y, AIR);
     dmg.delete(key(x, y));
     burst(x, y, id);
-    if (id >= 10) {
+    if (id >= ORE_BASE) {
       const o = ORES[id];
       const v = Math.round(o.value * valueMult());
       p.run += v;
@@ -584,7 +606,7 @@
       }
     } else if (getTile(p.x, p.y) === LAVA) {
       endRun(true); return;
-    } else if (!solid(p.x, p.y + 1) && !(held() === 'up' && canClimb())) {
+    } else if (!solid(p.x, p.y + 1) && !(held() === 'up' && !upSpent && canClimb())) {
       step(p.x, p.y + 1, 0.09);
     } else {
       const d = held();
@@ -599,11 +621,13 @@
         if (id === AIR) {
           p.drilling = null; p.prog = 0;
           if (dy === -1) {
-            if (!lvl.climb) { flash('No climbing gear fitted.'); }
+            if (upSpent) { /* this hold already cut rock -- let go before climbing */ }
+            else if (!lvl.climb) { flash('No climbing gear fitted.'); }
             else if (p.fuel <= 0) { flash('Cells dry. No lift left.'); }
             else { p.fuel--; step(nx, ny, moveTime); }
           } else step(nx, ny, moveTime);
         } else if (id === LAVA) {
+          if (dy === -1) upSpent = true;
           if (!lvl.siphon) { p.prog = 0; flash('Molten. Cut around it.'); }
           else if (p.fuel <= 0) { p.prog = 0; flash('Siphon needs a cell.'); }
           else {
@@ -629,11 +653,12 @@
           p.prog = 0; flash('Bedrock wall.');
         } else if (!canCut(tierOf(id))) {
           p.prog = 0;
-          flash('Way past the bit: ' + (id >= 10 ? ORES[id].name : ROCK[id].name) + '.');
+          flash('Way past the bit: ' + (id >= ORE_BASE ? ORES[id].name : ROCK[id].name) + '.');
         } else {
+          if (dy === -1) upSpent = true;   // this hold is a cut, not a climb
           const tier = tierOf(id);
           const over = tier > maxTier();
-          const hp = id >= 10 ? ROCK[ORES[id].tier].hp * 1.15 : ROCK[id].hp;
+          const hp = id >= ORE_BASE ? ROCK[ORES[id].tier].hp * 1.15 : ROCK[id].hp;
           const dk = key(nx, ny);
           if (p.drilling !== dk) {
             p.drilling = dk;
@@ -662,9 +687,10 @@
           if (broke) {
             p.drilling = null;
             if (getTile(nx, ny) === AIR) {
-              if (dy === -1) {                     // rising into the cut costs lift
-                if (canClimb()) { p.fuel--; step(nx, ny, moveTime); }
-                else flash('Cut it open, but nothing to climb with.');
+              if (dy === -1) {
+                // the cut is open, but rising into it is a separate decision
+                upSpent = true;
+                if (lvl.climb) flash('Cut open. Release and press up to climb.');
               } else step(nx, ny, moveTime);
             }
           }
@@ -755,7 +781,7 @@
       ctx.fillRect(sx+rx, sy+ry, 2, 2);
     }
 
-    if (id >= 10) {
+    if (id >= ORE_BASE) {
       const o = ORES[id];
       ctx.fillStyle = o.c;
       for (let i = 0; i < 5; i++) {
