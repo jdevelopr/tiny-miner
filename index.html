@@ -95,8 +95,10 @@
   .tree.max{ border-color:#33405a }
   .trow{ display:flex; align-items:center; gap:8px }
   .tree h3{ margin:0; font-size:10px; letter-spacing:1px; flex:1 }
-  .pips{ display:flex; gap:3px; flex-wrap:wrap; justify-content:flex-end; max-width:96px }
-  .pip{ width:6px; height:9px; background:#2b2740 }
+  /* one row, always -- pips shrink to fit rather than wrapping */
+  .pips{ display:flex; gap:2px; flex-wrap:nowrap; justify-content:flex-end;
+         flex:0 1 auto; min-width:0; overflow:hidden }
+  .pip{ height:9px; background:#2b2740; flex:0 1 6px; min-width:2px }
   .pip.on{ background:var(--amber) }
   .tree p{ margin:0; font-size:10px; color:var(--dim); line-height:1.6; min-height:2.4em }
   .buy{ background:#241f33; border:1px solid var(--line); color:var(--amber); font:inherit;
@@ -161,7 +163,7 @@
       <canvas id="bay" width="52" height="52"></canvas>
       <div class="wcols">
         <div class="sec"><h2>UPGRADES</h2><div class="trees" id="trees"></div></div>
-        <div class="sec"><h2>TOOLS <em>one-time unlocks, run on cells</em></h2>
+        <div class="sec"><h2>TOOLS <em>unlocked with cash, run on cells</em></h2>
           <div class="trees" id="tools"></div></div>
       </div>
     </div>
@@ -925,10 +927,26 @@
   // laser, 10 a blue lance that throws sparks
   function bitLook() {
     const tier = maxTier();
-    if (tier <= 4) return { laser:false, w: 3 + tier, len: 3 + tier, speck: tier - 1 };
-    if (tier <= 9) return { laser:true, w: 2 + (tier - 4), len: 5,
+    // tiers 1-5 stay a mechanical bit that grows and roughens
+    if (tier <= 5) return { laser:false, w: 3 + Math.min(4, tier), len: 3 + Math.min(4, tier),
+                            speck: tier - 1 };
+    if (tier <= 9) return { laser:true, w: 2 + (tier - 5), len: 5,
                             core:'#ffe2e2', glow:'226,86,74' };
     return { laser:true, w: 7, len: 6, core:'#eaffff', glow:'127,230,255', ultra:true };
+  }
+
+  // the beam runs down whatever the robot has already opened up and lands on
+  // the first thing that stops it -- an open shaft lights all the way down
+  const BEAM_TILES = 24;
+  function beamReach(face) {
+    const dx = face === 'left' ? -1 : face === 'right' ? 1 : 0;
+    const dy = face === 'down' ? 1 : face === 'up' ? -1 : 0;
+    if (!dx && !dy) return T;
+    // always covers the tile under the bit, then keeps going through anything
+    // already open behind it -- break into a shaft and the beam runs down it
+    let k = 1;
+    while (k < BEAM_TILES && getTile(p.x + dx * (k + 1), p.y + dy * (k + 1)) === AIR) k++;
+    return k * T;
   }
 
   // one rect drawn outward along whichever way the robot faces
@@ -948,13 +966,14 @@
     right: (sx, sy, wob) => [sx+11+wob, sy+9,  1,  0],
   };
 
-  function bitImpact(sx, sy, face) {
+  function bitImpact(sx, sy, face, reach) {
     const axis = FACE_AXIS[face]; if (!axis) return null;
     const [ox, oy, dx, dy] = axis(sx, sy, 0);
-    return [ox + dx * T, oy + dy * T];
+    const len = reach || T;
+    return [ox + dx * len, oy + dy * len];
   }
 
-  function paintBit(c, sx, sy, face, wob, drilling) {
+  function paintBit(c, sx, sy, face, wob, drilling, reach) {
     const axis = FACE_AXIS[face]; if (!axis) return;
     const [ox, oy, dx, dy] = axis(sx, sy, wob);
     const b = bitLook();
@@ -974,7 +993,7 @@
 
     // the laser only exists while it is cutting -- nothing shows at rest
     if (!drilling) return;
-    const len = T;
+    const len = reach || T;
     axisRect(c, ox, oy, dx, dy, len, b.w + 4, 'rgba(' + b.glow + ',.20)');
     axisRect(c, ox, oy, dx, dy, len, b.w + 2, 'rgba(' + b.glow + ',.45)');
     axisRect(c, ox, oy, dx, dy, len, b.w, 'rgb(' + b.glow + ')');
@@ -1043,7 +1062,7 @@
     const phase = o.phase || 0;
     // bit first so the beam reads as coming out from under the chassis,
     // then the running gear, then the body on top of both
-    paintBit(c, sx, sy, face, wob, !!o.drilling);
+    paintBit(c, sx, sy, face, wob, !!o.drilling, o.reach);
     paintBoosters(c, sx, sy, o.burn || 0, phase);
     paintWheels(c, sx, sy, phase);
     for (let r = 0; r < ROBOT.length; r++)
@@ -1077,12 +1096,13 @@
     if (!p.molten) {
       paintRobot(ctx, Math.round(p.px), Math.round(p.py), p.dir, p.face,
                  p.drilling && Math.random() < .5 ? 1 : 0, coolTint(),
-                 { drilling: !!p.drilling, burn: p.burn, phase: animT });
+                 { drilling: !!p.drilling, burn: p.burn, phase: animT,
+                   reach: p.drilling ? beamReach(p.face) : T });
 
       // sparks off the impact point -- small, and thrown back toward the rig
       const b = bitLook();
       if (p.drilling && b.laser) {
-        const hit = bitImpact(p.px, p.py, p.face);
+        const hit = bitImpact(p.px, p.py, p.face, beamReach(p.face));
         if (hit) {
           const ultra = !!b.ultra;
           const n = ultra ? 2 : 1;
@@ -1179,7 +1199,8 @@
         $('wBank').textContent = '$' + bank;
       };
       el.appendChild(btn);
-      (t.tool ? toolWrap : wrap).appendChild(el);
+      // anything that runs on cells lives with the tools, tiered or not
+      ((t.tool || t.unlock) ? toolWrap : wrap).appendChild(el);
     });
     $('wNote').innerHTML =
       'Cool to ' + safeDepth() + 'm / bit reaches ' + ROCK[maxTier()].name +
