@@ -281,7 +281,7 @@
 
   /* controller: a HUD strip with the existing shell bolted underneath */
   #cplay{ padding:0; align-items:stretch; flex-direction:column }
-  .cviewhost{ width:100%; padding:6px 6px 0; display:flex }
+  .cviewhost{ width:100%; padding:6px 6px 0; display:flex; position:relative }
   .cviewhost canvas{ width:100%; height:auto; display:block; image-rendering:pixelated;
     border:2px solid #05040a; background:#000 }
   .chud{ display:flex; gap:14px; align-items:center; padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
@@ -409,9 +409,11 @@
     : TOUCH ? Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * lvl.size) : 1;
   const viewW = () => VIEW.w / zoom();
   const viewH = () => VIEW.h / zoom();
+  const rigX = () => (p.drawX !== undefined ? p.drawX : p.px);
+  const rigY = () => (p.drawY !== undefined ? p.drawY : p.py);
   const camTargetX = () => WORLD_W <= viewW() ? 0
-    : Math.max(0, Math.min(WORLD_W - viewW(), p.px + 8 - viewW() / 2));
-  const camTargetY = () => p.py - viewH() * 0.42;
+    : Math.max(0, Math.min(WORLD_W - viewW(), rigX() + 8 - viewW() / 2));
+  const camTargetY = () => rigY() - viewH() * 0.42;
 
   // ---------- tiles ----------
   // rock tiers 1..6 share ids 1..6; ore ids 10..15 map to tier (id-9)
@@ -1429,7 +1431,8 @@
     drawParts();
 
     if (!p.molten) {
-      paintRobot(ctx, Math.round(p.px), Math.round(p.py), p.dir, p.face,
+      paintRobot(ctx, Math.round(p.drawX !== undefined ? p.drawX : p.px),
+                 Math.round(p.drawY !== undefined ? p.drawY : p.py), p.dir, p.face,
                  p.drilling && Math.random() < .5 ? 1 : 0, coolTint(),
                  { drilling: !!p.drilling, burn: p.burn, phase: animT,
                    reach: p.drilling ? beamReach(p.face) : T });
@@ -1911,11 +1914,15 @@
     },
 
     // ---- a controller mirrors its own mine from the seed plus what has been dug ----
-    snapshot(slot, others) {
+    snapshot(slot, others, full) {
       const m = slot.mp;
       m.log = m.log || []; m.plog = m.plog || [];
+      if (full) { m.sent = 0; m.psent = 0; }
+      m.seq = (m.seq || 0) + 1;
       const snap = {
         seed: slot.seed,
+        seq: m.seq,
+        full: !!full,
         cut: m.log.slice(m.sent || 0),
         lit: m.plog.slice(m.psent || 0),
         dmg: [...slot.dmg.entries()],
@@ -1933,11 +1940,17 @@
       slot.mp.plog = sharedLog ? sharedLog.plog : [];
       slot.mp.sent = 0; slot.mp.psent = 0;
     },
+    // returns false when a delta went missing, so the caller can ask for a resync
     applySnapshot(slot, snap) {
-      if (slot.seed !== snap.seed) {          // a new round: start the mirror over
+      const fresh = slot.seed !== snap.seed || snap.full;
+      if (fresh) {
         slot.world = new Map(); slot.dmg = new Map(); slot.pinged = new Set();
         slot.seed = snap.seed;
+        slot.mp.rx = snap.seq - 1;
       }
+      const expect = (slot.mp.rx || 0) + 1;
+      if (!fresh && snap.seq !== expect) { slot.mp.rx = snap.seq; return false; }
+      slot.mp.rx = snap.seq;
       for (const line of snap.cut) {
         const i = line.lastIndexOf(':');
         slot.world.set(line.slice(0, i), +line.slice(i + 1));
@@ -1946,12 +1959,29 @@
       slot.dmg = new Map(snap.dmg);
       Object.assign(slot.lvl, snap.lvl);
       if (snap.p) {
+        const prev = slot.p;
         slot.p = Object.assign({
           moving:false, mt:0, dur:.12, tx:0, ty:0, fx:0, fy:0, prog:0, chunks:0,
           run:0, best:0, t:0, hover:false, fuel:0,
         }, slot.p || {}, snap.p);
         slot.p.drilling = snap.p.drilling ? 'x' : null;
+        // remember where the rig was so the phone can slide it into place
+        slot.p.ipx = prev ? (prev.ipx !== undefined ? prev.ipx : prev.px) : snap.p.px;
+        slot.p.ipy = prev ? (prev.ipy !== undefined ? prev.ipy : prev.py) : snap.p.py;
       }
+      return true;
+    },
+    // move the drawn rig toward the last reported position instead of snapping
+    lerpRig(slot, dt) {
+      const q = slot.p;
+      if (!q) return;
+      if (q.ipx === undefined) { q.ipx = q.px; q.ipy = q.py; }
+      const k = Math.min(1, dt * 18);
+      q.ipx += (q.px - q.ipx) * k;
+      q.ipy += (q.py - q.ipy) * k;
+      // a long jump means a teleport, not a walk -- do not slide through rock
+      if (Math.abs(q.px - q.ipx) > 40 || Math.abs(q.py - q.ipy) > 40) { q.ipx = q.px; q.ipy = q.py; }
+      q.drawX = q.ipx; q.drawY = q.ipy;
     },
     // the other rigs in a shared mine, drawn as plain sprites
     paintGhosts(view, zoomN, camRef, list) {
@@ -1970,6 +2000,8 @@
       return Math.max(ZOOM_FAR, ZOOM_NEAR - ZOOM_STEP * (slot.lvl.size || 0));
     },
     canvasEl() { return cvs; },
+    // resolves a tile the way a paint would, generating it if needed
+    tileAt(slot, x, y) { loadSlot(slot); const v = getTile(x, y); saveSlot(slot); return v; },
     camOf(slot) { return slot.cam; },
     setHooks(input, action) { inputHook = input; actionHook = action; },
     controllerMode(on) { document.documentElement.classList.toggle('playing', !!on); },
@@ -1978,6 +2010,7 @@
       $('padImp').classList.toggle('lit', !!imp);
     },
     padEl() { return $('pad'); },
+    layoutBtnEl() { return $('layoutBtn'); },
     setCam(slot, x, y) { slot.cam.x = x; slot.cam.y = y; },
     trackTarget(slot) {
       loadSlot(slot);
@@ -2676,7 +2709,9 @@
           const others = shared ? players.filter(o => o !== pl && o.game.p).map(o => ({
             px:o.game.p.px, py:o.game.p.py, dir:o.game.p.dir, face:o.game.p.face, color:hex(o.color)
           })) : [];
-          NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game), snap: TM.snapshot(pl.game, others) });
+          const full = pl.needFull; pl.needFull = false;
+          NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game),
+                          snap: TM.snapshot(pl.game, others, full) });
         });
       }
       if (players.every(pl => pl.done)) endRound();
@@ -2753,6 +2788,11 @@
 
   NET.on('in',  (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.setKey(pl.game, m.dir, m.on); });
   NET.on('act', (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.act(pl.game, m.a); });
+  // a phone that spots a gap in the delta stream asks for the whole map again
+  NET.on('resync', (m, from) => {
+    const pl = match.players.find(x => x.id === from);
+    if (pl) pl.needFull = true;
+  });
   NET.on('buy', (m, from) => {
     const pl = match.players.find(x => x.id === from);
     if (!pl || phase !== 'shop') return;
@@ -2791,6 +2831,7 @@
     if ($('cplay').classList.contains('on')) {
       if (viewClock > 0) { viewClock = Math.max(0, viewClock - dt); $('chTime').textContent = viewClock.toFixed(1); }
       if (!mirror || !mirror.p) return;
+      TM.lerpRig(mirror, dt);
       const cv = TM.canvasEl();
       const view = { x:0, y:0, w:cv.width, h:cv.height };
       const z = TM.mobileZoom(mirror);
@@ -2819,6 +2860,8 @@
       if (TM.padEl().parentNode !== padHost) padHost.appendChild(TM.padEl());
       const viewHost = $('cViewHost');
       if (TM.canvasEl().parentNode !== viewHost) viewHost.appendChild(TM.canvasEl());
+      // the PAD / WIDE switch lives on the shell, so it has to come across too
+      if (TM.layoutBtnEl().parentNode !== viewHost) viewHost.appendChild(TM.layoutBtnEl());
       TM.controllerMode(true);
       TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
       if (!mirror) mirror = TM.makeSlot();
@@ -2841,9 +2884,15 @@
   }
   NET.on('begin', () => {});
   NET.on('phase', controllerPhase);
+  let resyncAsked = -Infinity;   // never suppress the first request
   NET.on('view', m => {
     if (!mirror) mirror = TM.makeSlot();
-    TM.applySnapshot(mirror, m.snap);
+    const ok = TM.applySnapshot(mirror, m.snap);
+    if (!ok) {
+      // a delta went missing, so the map here is stale -- ask for the full picture
+      const now = performance.now();
+      if (now - resyncAsked > 600) { resyncAsked = now; NET.send({ t:'resync' }); }
+    }
     ghosts = m.snap.others || [];
     NET.fire('hud', { t:'hud', hud: m.hud });
   });
