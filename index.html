@@ -230,6 +230,9 @@
       desc:l => { const t = Math.min(TOP_TIER, 1+l);
         return 'Rated to ' + ROCK[t].name + ' (' + ORES[ORE_BASE+t].name + ')' +
                (t < TOP_TIER ? '. Can overdrive into ' + ROCK[t+1].name + ' at a crawl.' : '.'); } },
+    { key:'wheels',name:'WHEELS', max:10, base:120,
+      desc:l => l === 0 ? 'Stock treads. Moves and falls at base speed.'
+                        : 'Moves and falls ' + Math.round(0.12*l*100) + '% faster than stock treads.' },
     { key:'radar', name:'RADAR', max:5, base:150,
       desc:l => l === 0 ? 'No scan. Ore is invisible until exposed.'
                         : 'Shows ore through ' + (l+1) + ' tiles of rock.' },
@@ -249,11 +252,13 @@
       desc:l => l ? 'PING or SPACE. 1 cell lights every ore on screen, for good.'
                   : 'Pulses the rock. Ore it finds stays visible for the rest of the run.' },
   ];
-  const lvl = { speed:0, size:0, power:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0 };
+  const lvl = { speed:0, size:0, power:0, wheels:0, radar:0, market:0, cool:0, fuel:0, climb:0, siphon:0, ping:0 };
   // size and market multiply everything else, so they climb faster
   const costOf = (t, l) => Math.round(t.base * Math.pow(t.rate || 1.65, l));
 
   const drillMult  = () => 1 + 0.17 * lvl.speed;
+  // wheels shorten every step and every fall alike
+  const rollMult   = () => 1 + 0.12 * lvl.wheels;
   const boreRadius = () => lvl.size;
   const maxTier    = () => Math.min(TOP_TIER, 1 + lvl.power);
   // one tier above the bit's rating is possible, just brutal
@@ -520,6 +525,7 @@
     p = { x:12, y:sy, px:12*T, py:sy*T, dir:1, face:'down',
           moving:false, mt:0, dur:.12, tx:12, ty:sy, fx:12*T, fy:sy*T,
           drilling:null, prog:0, chunks:0, run:0, depth:0, best:0, t:RUN_TIME, molten:false,
+          hover:false,   // a climb leaves you hanging until you do something else
           fuel:fuelMax() };
     parts.length = 0;
     pops.length = 0;
@@ -593,7 +599,7 @@
     if (p.t <= 0) { p.t = 0; hud(); endRun(false); return; }
 
     const heat = heatFactor(p.depth);
-    const moveTime = 0.12 / Math.max(0.25, heat);
+    const moveTime = 0.12 / (Math.max(0.25, heat) * rollMult());
 
     if (p.moving) {
       p.mt += dt;
@@ -606,12 +612,14 @@
       }
     } else if (getTile(p.x, p.y) === LAVA) {
       endRun(true); return;
-    } else if (!solid(p.x, p.y + 1) && !(held() === 'up' && !upSpent && canClimb())) {
-      step(p.x, p.y + 1, 0.09);
+    } else if (!solid(p.x, p.y + 1) && !p.hover && !(held() === 'up' && !upSpent && canClimb())) {
+      step(p.x, p.y + 1, 0.09 / rollMult());
     } else {
       const d = held();
       if (!d) { p.drilling = null; p.prog = 0; p.chunks = 0; }
       else {
+        // any action drops the climb hang -- unless the action is another climb
+        p.hover = false;
         const dx = d==='left' ? -1 : d==='right' ? 1 : 0;
         const dy = d==='down' ? 1 : d==='up' ? -1 : 0;
         const nx = p.x + dx, ny = p.y + dy;
@@ -624,7 +632,7 @@
             if (upSpent) { /* this hold already cut rock -- let go before climbing */ }
             else if (!lvl.climb) { flash('No climbing gear fitted.'); }
             else if (p.fuel <= 0) { flash('Cells dry. No lift left.'); }
-            else { p.fuel--; step(nx, ny, moveTime); }
+            else { p.fuel--; p.hover = true; step(nx, ny, moveTime); }
           } else step(nx, ny, moveTime);
         } else if (id === LAVA) {
           if (dy === -1) upSpent = true;
