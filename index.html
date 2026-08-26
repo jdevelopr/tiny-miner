@@ -50,6 +50,11 @@
   .ping:disabled{ opacity:.4; cursor:not-allowed }
   .imp{ background:#2b1d33; border-color:#5a2f60; color:#d08cf0 }
   .imp:hover:not(:disabled){ border-color:#d08cf0; background:#3d2647 }
+  /* the fill is the hold timer running left to right */
+  .out{ border-color:#5a4a2a; color:var(--amber); --hold:0%;
+        background:linear-gradient(to right, rgba(242,177,52,.55) var(--hold), #2a2418 var(--hold)) }
+  .out:hover:not(:disabled){ border-color:var(--amber) }
+  .out:disabled{ --hold:0% }
   .ping[hidden]{ display:none }
   .timebar{ height:4px; background:#22222c }
   .timebar i{ display:block; height:100%; background:var(--amber); width:100% }
@@ -130,6 +135,7 @@
       <div class="flash" id="flash"></div>
       <button class="ping" id="pingBtn" hidden>PING</button>
       <button class="ping imp" id="impBtn" hidden>IMPLODE</button>
+      <button class="ping out" id="endBtn">SURFACE</button>
     </div>
     <div class="timebar"><i id="timebar"></i></div>
   </div>
@@ -609,11 +615,13 @@
     keys[k] = true;
     if (k === ' ' || k === 'e') seismicPing();
     if (k === 'q') implode();
+    if (k === 'escape' && !e.repeat) startHold();
   });
   addEventListener('keyup', e => {
     const k = e.key.toLowerCase();
     keys[k] = false;
     if (k === 'w' || k === 'arrowup') upSpent = false;   // fresh press = fresh intent
+    if (k === 'escape') cancelHold();
   });
   const held = () =>
     (keys['a']||keys['arrowleft'])  ? 'left'  :
@@ -802,6 +810,8 @@
     const ib = $('impBtn');
     ib.hidden = !lvl.implode;
     ib.disabled = !running || p.fuel <= 0;
+
+    $('endBtn').disabled = !running;
 
     const box = $('fuelBox');
     box.hidden = !hasFuelTool();
@@ -1177,23 +1187,60 @@
       (hasFuelTool() ? ' / ' + fuelMax() + ' cells' : '');
   }
 
-  function endRun(molten) {
+  function endRun(molten, early) {
     running = false;
+    cancelHold();
     p.molten = !!molten;
     const kept = molten ? Math.floor(p.run / 2) : p.run;
     bank += kept;
     bestEver = Math.max(bestEver, p.best);
     hud();
-    $('wTitle').textContent = molten ? 'RIG LOST' : 'RECOVERED';
+    $('wTitle').textContent = molten ? 'RIG LOST' : early ? 'SURFACED' : 'RECOVERED';
     $('wSub').innerHTML = molten
       ? 'The lava took the rig at ' + p.best + 'm. Salvage crews recovered <b style="color:var(--bad)">$' + kept + '</b> of $' + p.run + '.<br>Deepest ever ' + bestEver + 'm.'
-      : 'Hauled <b style="color:var(--good)">$' + kept + '</b> back up from ' + p.best + 'm.<br>Deepest ever ' + bestEver + 'm.';
+      : 'Hauled <b style="color:var(--good)">$' + kept + '</b> back up from ' + p.best + 'm'
+        + (early ? ' with ' + p.t.toFixed(1) + 's still on the clock' : '')
+        + '.<br>Deepest ever ' + bestEver + 'm.';
     $('wBank').textContent = '$' + bank;
     renderTrees(); drawBay();
     $('workshop').classList.add('on');
     $('startBtn').focus();
   }
 
+  // pull out early: the haul banks in full, the clock just stops.
+  // held for three seconds so a stray click never ends a good run.
+  const HOLD_MS = 3000;
+  let holdFrom = 0, holdRaf = 0;
+
+  function holdTick() {
+    if (!holdFrom) return;
+    const k = Math.min(1, (performance.now() - holdFrom) / HOLD_MS);
+    const btn = $('endBtn');
+    btn.style.setProperty('--hold', (k * 100) + '%');
+    btn.textContent = k < 1 ? 'HOLD ' + (3 - k * 3).toFixed(1) + 's' : 'SURFACE';
+    if (k >= 1) { cancelHold(); surface(); return; }
+    holdRaf = requestAnimationFrame(holdTick);
+  }
+  function startHold() {
+    if (!running || holdFrom) return;
+    holdFrom = performance.now();
+    holdTick();
+  }
+  function cancelHold() {
+    holdFrom = 0;
+    cancelAnimationFrame(holdRaf);
+    const btn = $('endBtn');
+    btn.style.setProperty('--hold', '0%');
+    btn.textContent = 'SURFACE';
+  }
+  function surface() {
+    if (!running) return;
+    endRun(false, true);
+  }
+  const eb = $('endBtn');
+  eb.addEventListener('pointerdown', e => { e.preventDefault(); startHold(); });
+  ['pointerup','pointerleave','pointercancel','blur'].forEach(ev => eb.addEventListener(ev, cancelHold));
+  addEventListener('blur', cancelHold);
   $('startBtn').onclick = () => { $('title').classList.remove('on'); newRun(); };
   $('pingBtn').onclick = seismicPing;
   $('impBtn').onclick = implode;
