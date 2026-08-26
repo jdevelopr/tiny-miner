@@ -102,8 +102,10 @@
 
   .wfoot{ display:flex; align-items:center; gap:14px; border-top:1px solid var(--line); padding-top:11px }
   .wfoot .note{ font-size:10px; color:var(--dim); line-height:1.6 }
-  .go{ margin-left:auto; background:var(--amber); color:#15131d; border:0; padding:11px 26px;
+  .go{ background:var(--amber); color:#15131d; border:0; padding:11px 26px;
     font:inherit; font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer }
+  /* only the workshop footer pushes its button to the right edge */
+  .wfoot .go{ margin-left:auto }
   .go:hover{ background:#ffc75a }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
 </style>
