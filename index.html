@@ -116,6 +116,17 @@
   /* only the workshop footer pushes its button to the right edge */
   .wfoot .go{ margin-left:auto }
   .go:hover{ background:#ffc75a }
+  /* tech assembled -- sits over the workshop until acknowledged */
+  .modal{ position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
+          background:rgba(8,7,12,.82) }
+  .modal[hidden]{ display:none }
+  .mcard{ background:#151222; border:2px solid var(--amber); padding:22px 26px; max-width:340px;
+          display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center }
+  .mtag{ font-size:10px; letter-spacing:2px; color:var(--dim) }
+  .mcard canvas{ image-rendering:pixelated; width:72px; height:72px }
+  .mcard h2{ margin:0; font-size:16px; letter-spacing:1px; font-weight:600; color:var(--amber) }
+  .mcard p{ margin:0; font-size:10px; color:var(--dim); line-height:1.7 }
+  .mcard .go{ margin-top:4px }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
 </style>
 </head>
@@ -172,6 +183,16 @@
     <div class="wfoot">
       <div class="note" id="wNote"></div>
       <button class="go" id="startBtn">DEPLOY</button>
+    </div>
+  </div>
+
+  <div class="modal" id="toolModal" hidden>
+    <div class="mcard">
+      <span class="mtag">TECH ASSEMBLED</span>
+      <canvas id="mIcon" width="72" height="72"></canvas>
+      <h2 id="mName">TOOL</h2>
+      <p id="mHow"></p>
+      <button class="go" id="mOk">EQUIP</button>
     </div>
   </div>
 </div>
@@ -243,6 +264,17 @@
     201:['..XXXX..','.X....X.','X......X','X..XX..X','X..XX..X','X......X','.X....X.','..XXXX..'],
     202:['...XX...','..X..X..','.X....X.','X..XX..X','...XX...','...XX...','..XXXX..','.X.XX.X.'],
     203:['...XX...','..XXXX..','.XX..XX.','XX....XX','XX....XX','.XX..XX.','..XXXX..','...XX...'],
+  };
+  const TOOL_HOW = {
+    climb: 'Boosters and a grapple line. Press up in open air to rise one tile for one cell. ' +
+           'After a climb the rig hangs where it is until you do something else, so you can line ' +
+           'up the next move without falling.',
+    siphon:'Drill straight into lava and drain it instead of dying. One cell per pool, paid at $' +
+           '240 a tile, and it leaves solid obsidian behind you.',
+    ping:  'SPACE or E. One cell lights every seam of ore and every buried artifact on screen, ' +
+           'and what it finds stays lit for the rest of the run.',
+    implode:'Q or the IMPLODE button. One cell collapses every tile your bit is rated for within ' +
+           'three tiles, banking any ore caught in it. Later tiers widen the blast to seven.',
   };
   const ARTI_SCRAP = 260;            // a spare piece for a finished tool is just salvage
   const found = { climb:0, siphon:0, ping:0, implode:0 };
@@ -647,6 +679,7 @@
     cam = { y: p.py - VIEW_H*0.42 };
     shake = 0; running = true;
     $('workshop').classList.remove('on');
+    $('toolModal').hidden = true;
     flash('Deploying.');
     hud();
   }
@@ -1308,12 +1341,37 @@
       (hasFuelTool() ? ' / ' + fuelMax() + ' cells' : '');
   }
 
+  // a queue, because two sets can complete on the same run
+  const toolQueue = [];
+  function showToolModal() {
+    if (!toolQueue.length) { $('toolModal').hidden = true; return; }
+    const t = toolQueue[0];
+    const id = ARTI_IDS.find(i => ARTI[i].key === t.key);
+    const a = ARTI[id], art = ARTI_ART[id];
+    const c = $('mIcon').getContext('2d');
+    c.clearRect(0, 0, 72, 72);
+    c.fillStyle = '#15121c'; c.fillRect(0, 0, 72, 72);
+    c.fillStyle = a.c;
+    for (let r = 0; r < 8; r++)
+      for (let k = 0; k < 8; k++)
+        if (art[r][k] === 'X') c.fillRect(4 + k*8, 4 + r*8, 8, 8);
+    $('mName').textContent = t.name;
+    $('mHow').textContent = TOOL_HOW[t.key] || '';
+    $('toolModal').hidden = false;
+    $('mOk').focus();
+  }
+  $('mOk').onclick = () => { toolQueue.shift(); showToolModal(); };
+
   // a completed set fits itself as soon as the rig is back in the bay
   function assemble() {
     const fitted = [];
     TREES.forEach(t => {
       if (!t.arti || lvl[t.key]) return;
-      if (found[t.key] >= ARTI_NEED[t.key]) { lvl[t.key] = 1; fitted.push(t.name); }
+      if (found[t.key] >= ARTI_NEED[t.key]) {
+        lvl[t.key] = 1;
+        fitted.push(t.name);
+        toolQueue.push({ key:t.key, name:t.name });
+      }
     });
     return fitted;
   }
@@ -1341,6 +1399,7 @@
     renderTrees(); drawBay();
     $('workshop').classList.add('on');
     $('startBtn').focus();
+    showToolModal();
   }
 
   // pull out early: the haul banks in full, the clock just stops.
