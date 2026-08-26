@@ -102,7 +102,6 @@
   .pip.on{ background:var(--amber) }
   .tree.partial{ border-style:dashed }
   .tree.partial .pip.on{ background:#5fd08a }
-  .sec .empty{ margin:0; font-size:10px; color:var(--dim); line-height:1.6 }
   .tree p{ margin:0; font-size:10px; color:var(--dim); line-height:1.6; min-height:2.4em }
   .buy{ background:#241f33; border:1px solid var(--line); color:var(--amber); font:inherit;
     font-size:10px; padding:5px 8px; cursor:pointer; letter-spacing:1px }
@@ -166,7 +165,7 @@
       <canvas id="bay" width="52" height="52"></canvas>
       <div class="wcols">
         <div class="sec"><h2>UPGRADES</h2><div class="trees" id="trees"></div></div>
-        <div class="sec"><h2>TOOLS <em>dug up in pieces, run on cells</em></h2>
+        <div class="sec" id="toolSec" hidden><h2>TOOLS <em>dug up in pieces, run on cells</em></h2>
           <div class="trees" id="tools"></div></div>
       </div>
     </div>
@@ -179,7 +178,7 @@
 
 <div class="legend">
   <span>Tougher rock hosts richer ore -- drill power decides what you can even scratch.</span>
-  <span>Tool tech is buried in pieces -- dig it up, it cannot be bought.</span>
+  <span id="artiHint" hidden>Tool tech is buried in pieces -- dig it up, it cannot be bought.</span>
 </div>
 
 <script>
@@ -225,14 +224,17 @@
   };
   // ---------- tech artifacts ----------
   // tools are no longer bought -- they are dug up in pieces, each with its own
-  // silhouette and its own band of the shaft
+  // silhouette, buried at any depth once the dirt gives way
   const ARTI_BASE = 200;
   const ARTI = {
-    200:{ key:'climb',   need:1, name:'grapple core',  c:'#5fd08a', band:[15, 130] },
-    201:{ key:'siphon',  need:2, name:'pump core',     c:'#ff9b54', band:[80, 270] },
-    202:{ key:'ping',    need:3, name:'resonator',     c:'#7fe6ff', band:[160, 400] },
-    203:{ key:'implode', need:3, name:'collapse core', c:'#d08cf0', band:[240, 9999] },
+    200:{ key:'climb',   need:1, name:'grapple core',  c:'#5fd08a' },
+    201:{ key:'siphon',  need:2, name:'pump core',     c:'#ff9b54' },
+    202:{ key:'ping',    need:3, name:'resonator',     c:'#7fe6ff' },
+    203:{ key:'implode', need:3, name:'collapse core', c:'#d08cf0' },
   };
+  // any piece can turn up at any depth once the dirt gives way
+  const ARTI_MIN_DEPTH = 25;
+  const ARTI_CHANCE = 0.003;
   const ARTI_IDS = [200, 201, 202, 203];
   const ARTI_NEED = { climb:1, siphon:2, ping:3, implode:3 };
   // 8x8 silhouettes -- a hook, a ring, an antenna, a collapsing diamond
@@ -381,12 +383,13 @@
     if (depth === 0) return 1;
     if (lavaAt(x, y)) return LAVA;
     const t = rockTier(x, y, depth);
-    // a piece for a tool that still needs one, if this depth is inside its band
-    for (let i = 0; i < ARTI_IDS.length; i++) {
-      const id = ARTI_IDS[i], a = ARTI[id];
-      if (found[a.key] >= a.need) continue;
-      if (depth < a.band[0] || depth > a.band[1]) continue;
-      if (hash(x, y, 41 + i * 7 + seed) < 0.0045) return id;
+    // a piece for any tool that still needs one -- no depth order, just luck
+    if (depth >= ARTI_MIN_DEPTH) {
+      for (let i = 0; i < ARTI_IDS.length; i++) {
+        const id = ARTI_IDS[i], a = ARTI[id];
+        if (found[a.key] >= a.need) continue;
+        if (hash(x, y, 41 + i * 7 + seed) < ARTI_CHANCE) return id;
+      }
     }
     // ore chance dips slightly for the toughest rock so diamond stays a find
     const chance = 0.105 - t * 0.006;
@@ -1297,9 +1300,8 @@
       if (isTool) anyTool = true;
       (isTool ? toolWrap : wrap).appendChild(el);
     });
-    if (!anyTool)
-      toolWrap.innerHTML = '<p class="empty">Nothing salvaged yet. Tool tech is buried in the rock ' +
-                           'and turns up in pieces -- the deeper the tool, the deeper the pieces.</p>';
+    $('toolSec').hidden = !anyTool;
+    $('artiHint').hidden = !anyTool;
     $('wNote').innerHTML =
       'Cool to ' + safeDepth() + 'm / bit reaches ' + ROCK[maxTier()].name +
       ' / radar ' + (scanRange() || 'offline') +
