@@ -294,6 +294,12 @@
     border-bottom:1px solid var(--line); flex-wrap:wrap }
   .chud .stat b{ font-size:18px }
   .cflash{ margin-left:auto; font-size:10px; color:var(--amber); text-align:right; max-width:48% }
+  /* what you are carrying, at a glance */
+  .oretrack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto }
+  .oretrack .ot{ display:flex; align-items:center; gap:4px; font-size:11px;
+    font-variant-numeric:tabular-nums; color:var(--ink) }
+  .oretrack .ot i{ width:8px; height:8px; display:block }
+  .chud .oretrack{ margin-left:0 }
   .clink{ font-size:10px; color:var(--bad); letter-spacing:1px }
   .cpadhost{ flex:1; min-height:0; display:flex }
   .cpadhost .pad{ visibility:visible !important }
@@ -303,6 +309,36 @@
   .cshead h1{ margin:0; font-size:26px; color:var(--good) }
   .cshead .clockbig b{ font-size:30px }
   .cscards{ display:flex; flex-direction:column; gap:8px }
+  /* ---------- the ledger ---------- */
+  .ldfx{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1 }
+  .ldcard{ position:relative; z-index:2; gap:10px }
+  .ldrows{ display:flex; flex-direction:column; gap:6px; width:100%; min-height:40px }
+  .ldrow{ display:flex; align-items:center; gap:10px; padding:8px 10px; background:#1b1826;
+    border:1px solid var(--line); opacity:0; transform:translateX(-18px) }
+  .ldrow.in{ animation:ldpunch .34s cubic-bezier(.2,1.6,.4,1) forwards }
+  @keyframes ldpunch{ 0%{opacity:0;transform:translateX(-18px) scale(.94)}
+    60%{opacity:1;transform:translateX(3px) scale(1.04)} 100%{opacity:1;transform:none} }
+  .ldrow i{ width:12px; height:12px; display:block; flex:0 0 auto }
+  .ldrow .nm{ font-size:11px; letter-spacing:1px; text-transform:uppercase; flex:1; text-align:left }
+  .ldrow .ct{ font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums }
+  .ldrow .vl{ font-size:13px; color:var(--good); font-variant-numeric:tabular-nums; min-width:74px; text-align:right }
+  .ldrow.loss .vl{ color:var(--bad) }
+  .ldrow.tech .vl{ color:#7fe6ff }
+  .ldtotal{ display:flex; align-items:baseline; gap:12px; width:100%; border-top:1px solid var(--line);
+    padding-top:10px; opacity:0 }
+  .ldtotal.in{ opacity:1 }
+  .ldtotal span{ font-size:10px; letter-spacing:2px; color:var(--dim) }
+  .ldtotal b{ margin-left:auto; font-size:34px; color:var(--amber); font-variant-numeric:tabular-nums }
+  .ldtotal.lost b{ color:var(--bad) }
+  .shakeit{ animation:ldshake .3s }
+  @keyframes ldshake{ 10%{transform:translate(-3px,2px)} 30%{transform:translate(4px,-2px)}
+    50%{transform:translate(-4px,-1px)} 70%{transform:translate(3px,2px)} 100%{transform:none} }
+  .ldcol{ display:flex; flex-direction:column; gap:6px; padding:12px; background:#141120;
+    border:2px solid var(--line) }
+  .ldcol h3{ margin:0 0 2px; font-size:13px; letter-spacing:1px }
+  .ldcol .ldrow{ padding:5px 7px }
+  .ldcol .ldrow .nm{ font-size:10px }
+  .ldcol .ldtotal b{ font-size:22px }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
 </style>
 </head>
@@ -325,6 +361,7 @@
       <div class="stat"><span>This run</span><b id="run">$0</b></div>
       <div class="stat cash"><span>Bank</span><b id="bank">$0</b></div>
       <div class="flash" id="flash"></div>
+      <div class="oretrack" id="oreRow"></div>
       <button class="ping" id="pingBtn" hidden>PING</button>
       <button class="ping imp" id="impBtn" hidden>IMPLODE</button>
       <button class="ping out" id="endBtn">SURFACE</button>
@@ -908,6 +945,7 @@
     p = { x:12, y:sy, px:12*T, py:sy*T, dir:1, face:'down',
           moving:false, mt:0, dur:.12, tx:12, ty:sy, fx:12*T, fy:sy*T,
           drilling:null, prog:0, chunks:0, run:0, depth:0, best:0, t:RUN_TIME, molten:false,
+          haul:{}, arti:[],   // what came up this run, counted by kind
           hover:false,   // a climb leaves you hanging until you do something else
           burn:0,        // booster flame timer, refreshed by every climb
           fuel:fuelMax() };
@@ -949,6 +987,26 @@
     (keys['s']||keys['arrowdown'])  ? 'down'  :
     (keys['w']||keys['arrowup'])    ? 'up'    : null;
 
+  // a row of coloured pips with counts -- shared by the solo HUD and the phone
+  function drawTrack(el, rows) {
+    if (!el) return;
+    const sig = rows.map(r => r.c + r.n).join('|');
+    if (el.dataset.sig === sig) return;          // only touch the DOM when it changes
+    el.dataset.sig = sig;
+    el.innerHTML = '';
+    rows.forEach(r => {
+      const d = document.createElement('div');
+      d.className = 'ot';
+      const i = document.createElement('i');
+      i.style.background = r.c;
+      d.appendChild(i);
+      const b = document.createElement('span');
+      b.textContent = r.n;
+      d.appendChild(b);
+      el.appendChild(d);
+    });
+  }
+
   function flash(t) {
     flashT = 2;
     if (MP) { MP.flash = t; return; }          // the phone shows it instead
@@ -956,6 +1014,13 @@
   }
 
   // ---------- drilling ----------
+  // every payout is filed under its kind so the ledger can read it back
+  function tally(kind, v) {
+    if (!p.haul) p.haul = {};
+    const row = p.haul[kind] || (p.haul[kind] = { n:0, v:0 });
+    row.n++; row.v += v;
+  }
+
   function breakTile(x, y, headOn) {
     const id = getTile(x, y);
     if (!isRock(id)) return;
@@ -971,10 +1036,12 @@
         // the set is already complete, so this one is worth scrap and nothing more
         const v = Math.round(ARTI_SCRAP * valueMult());
         p.run += v;
+        tally('scrap', v);
         pop(x, y, '+$' + v);
         flash('SPARE ' + a.name.toUpperCase() + '  +$' + v);
       } else {
         found[a.key]++;
+        p.arti.push({ name:a.name, c:a.c });
         pop(x, y, a.name.toUpperCase());
         flash('TECH RECOVERED: ' + a.name.toUpperCase() + '  ' + found[a.key] + '/' + a.need);
         artiRing(x, y, a.c);
@@ -984,6 +1051,7 @@
       const o = ORES[id];
       const v = Math.round(o.value * valueMult());
       p.run += v;
+      tally(id, v);
       pop(x, y, '+$' + v);
       flash(o.name.toUpperCase() + '  +$' + v);
     }
@@ -1064,6 +1132,7 @@
               pop(nx, ny, '+$' + v);
               setTile(nx, ny, 6); dmg.delete(key(nx, ny));   // cools into obsidian
               emberBurst(nx, ny);
+              tally('lava', v);
               flash('LAVA SIPHONED  +$' + v);
               p.drilling = null; p.prog = 0; p.chunks = 0;
             }
@@ -1154,6 +1223,7 @@
     ib.hidden = !lvl.implode;
     ib.disabled = !running || p.fuel <= 0;
 
+    drawTrack($('oreRow'), p ? ENGINE.haulOf({ p, lvl }).rows.map(r => ({ n:r.n, c:r.c })) : []);
     $('endBtn').disabled = !running;
     $('padStart').disabled = !running;
     $('padPing').classList.toggle('lit', !!lvl.ping);
@@ -1637,11 +1707,23 @@
     const kept = molten ? Math.floor(p.run / 2) : p.run;
     bank += kept;
     bestEver = Math.max(bestEver, p.best);
+    const haul = ENGINE.haulOf({ p, lvl });
     if (MP) {
       // the match runner takes it from here: assemble, then report to the host
-      MP.ended = { molten:!!molten, early:!!early, kept, fitted: assemble() };
+      MP.ended = { molten:!!molten, early:!!early, kept, gross:p.run, depth:p.best,
+                   haul, fitted: assemble() };
       return;
     }
+    if (onSoloEnd) {
+      soloAfter = () => finishSoloEnd(molten, early, kept);
+      onSoloEnd(haul, { molten:!!molten, early:!!early, kept, gross:p.run, depth:p.best });
+      return;
+    }
+    finishSoloEnd(molten, early, kept);
+  }
+
+  let onSoloEnd = null, soloAfter = null;
+  function finishSoloEnd(molten, early, kept) {
     document.documentElement.classList.remove('playing');
     cancelHold();
     hud();
@@ -1917,6 +1999,20 @@
       saveSlot(slot);
       return ok;
     },
+    // rows for the tracker and the ledger, richest first
+    haulOf(slot) {
+      const p0 = slot.p;
+      if (!p0 || !p0.haul) return { rows:[], arti:[], gross:0 };
+      const rows = [];
+      for (const k in p0.haul) {
+        const r = p0.haul[k];
+        if (k === 'lava') rows.push({ key:k, name:'siphoned lava', n:r.n, v:r.v, c:'#ff8a1e' });
+        else if (k === 'scrap') rows.push({ key:k, name:'salvage scrap', n:r.n, v:r.v, c:'#9fb4cf' });
+        else { const o = ORES[k]; if (o) rows.push({ key:k, name:o.name, n:r.n, v:r.v, c:o.c }); }
+      }
+      rows.sort((a, b) => b.v - a.v);
+      return { rows, arti: p0.arti || [], gross: rows.reduce((t, r) => t + r.v, 0) };
+    },
     hudFor(slot) {
       return {
         t: slot.p ? +slot.p.t.toFixed(1) : 0,
@@ -1928,6 +2024,7 @@
         maxFuel: (() => { loadSlot(slot); const f = fuelMax(); saveSlot(slot); return f; })(),
         heat: slot.p ? Math.round(100 * (1 - (() => { loadSlot(slot); const h = heatFactor(slot.p.depth); saveSlot(slot); return h; })())) : 0,
         ping: !!slot.lvl.ping, implode: !!slot.lvl.implode,
+        haul: ENGINE.haulOf(slot).rows.map(r => ({ n:r.n, c:r.c })),
         flash: slot.mp.flash, molten: slot.p ? slot.p.molten : false,
         running: slot.running,
       };
@@ -2069,6 +2166,10 @@
       $('padImp').classList.toggle('lit', !!imp);
     },
     padEl() { return $('pad'); },
+    drawTrack(el, rows) { drawTrack(el, rows); },
+    // the shell puts a ledger between the run and the workshop
+    onSoloEnd(fn) { onSoloEnd = fn; },
+    resumeSolo() { const f = soloAfter; soloAfter = null; if (f) f(); },
     layoutBtnEl() { return $('layoutBtn'); },
     setCam(slot, x, y) { slot.cam.x = x; slot.cam.y = y; },
     trackTarget(slot) {
@@ -2126,6 +2227,7 @@
     <div class="stat"><span>Depth</span><b id="chDepth">0m</b></div>
     <div class="stat"><span>This run</span><b id="chRun">$0</b></div>
     <div class="stat"><span>Cells</span><b id="chCells">0</b></div>
+    <div class="oretrack" id="chOre"></div>
     <div class="clink" id="chLink"></div>
     <div class="cflash" id="chFlash"></div>
   </div>
@@ -2141,6 +2243,26 @@
     <p class="hint" id="csNote"></p>
     <div id="csCards" class="cscards"></div>
     <button class="go" id="csReady">READY</button>
+  </div>
+</div>
+
+<div class="screen" id="ledger">
+  <canvas id="ldFx" class="ldfx"></canvas>
+  <div class="scard wide ldcard" id="ldCard">
+    <span class="mtag" id="ldTag">THE HAUL</span>
+    <h1 id="ldTitle">RECOVERED</h1>
+    <div class="ldrows" id="ldRows"></div>
+    <div class="ldtotal" id="ldTotalRow"><span>BANKED</span><b id="ldTotal">$0</b></div>
+    <button class="go" id="ldGo">CONTINUE</button>
+  </div>
+</div>
+
+<div class="screen" id="mledger">
+  <canvas id="mlFx" class="ldfx"></canvas>
+  <div class="lwrap">
+    <div class="lhead"><div><span class="mtag">THE HAUL</span><h1 id="mlRound">ROUND 1</h1></div></div>
+    <div class="slots" id="mlCols"></div>
+    <p class="lnote" id="mlNote">Every rig back in the bay.</p>
   </div>
 </div>
 
@@ -2463,7 +2585,7 @@
     settings: match.settings,
   });
 
-  const SCREENS = ['menu','lobby','setup','ctrl','mshop','mdone','cplay','cshop'];
+  const SCREENS = ['menu','lobby','setup','ctrl','mshop','mdone','cplay','cshop','ledger','mledger'];
   function show(id) {
     SCREENS.forEach(s => $(s).classList.toggle('on', s === id));
     document.querySelector('.stage').style.display = id ? 'none' : '';
@@ -2706,6 +2828,151 @@
   $('lStart').onclick = () => startMatch();
 
 
+
+  // ================= the ledger =================
+  // a burst of colour behind the card, on its own little canvas
+  function makeFx(canvas) {
+    const c = canvas.getContext('2d');
+    let bits = [], raf = 0, last = 0;
+    const frame = now => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
+      c.clearRect(0, 0, canvas.width, canvas.height);
+      bits = bits.filter(b => (b.life -= dt) > 0);
+      for (const b of bits) {
+        b.vy += 620 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+        c.globalAlpha = Math.max(0, Math.min(1, b.life / b.max));
+        c.fillStyle = b.c;
+        c.fillRect(Math.round(b.x), Math.round(b.y), b.s, b.s);
+      }
+      c.globalAlpha = 1;
+      if (bits.length) raf = requestAnimationFrame(frame); else raf = 0;
+    };
+    return {
+      burst(x, y, colour, n) {
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 260;
+          bits.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120,
+                      s: Math.random() < .3 ? 4 : 3, c: colour, life: .5 + Math.random() * .6,
+                      max: 1.1 });
+        }
+        if (bits.length > 420) bits.splice(0, bits.length - 420);
+        if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
+      },
+      clear() { bits = []; },
+    };
+  }
+  const ldFx = makeFx($('ldFx')), mlFx = makeFx($('mlFx'));
+
+  const jolt = el => { el.classList.remove('shakeit'); void el.offsetWidth; el.classList.add('shakeit'); };
+
+  function ledgerRow(r, cls) {
+    const el = document.createElement('div');
+    el.className = 'ldrow' + (cls ? ' ' + cls : '');
+    const i = document.createElement('i'); i.style.background = r.c; el.appendChild(i);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.name; el.appendChild(nm);
+    const ct = document.createElement('span'); ct.className = 'ct'; ct.textContent = r.n ? 'x' + r.n : ''; el.appendChild(ct);
+    const vl = document.createElement('span'); vl.className = 'vl'; vl.textContent = r.label; el.appendChild(vl);
+    return el;
+  }
+
+  // build the row list once, then reveal them one at a time
+  function ledgerLines(haul, res) {
+    const lines = haul.rows.map(r => ({ c:r.c, name:r.name, n:r.n, label:'$' + r.v.toLocaleString('en-US'), cls:'' }));
+    (haul.arti || []).forEach(a => lines.push({ c:a.c, name:a.name + ' recovered', n:0, label:'TECH', cls:'tech' }));
+    if (res.molten) lines.push({ c:'#e2564a', name:'salvage loss', n:0,
+      label:'-$' + (res.gross - res.kept).toLocaleString('en-US'), cls:'loss' });
+    return lines;
+  }
+
+  let ldTimers = [], ldDone = null;
+  function clearLedger() { ldTimers.forEach(clearTimeout); ldTimers = []; }
+
+  function playLedger(haul, res, onDone) {
+    clearLedger(); ldFx.clear();
+    ldDone = onDone;
+    $('ldTitle').textContent = res.molten ? 'RIG LOST' : res.early ? 'SURFACED' : 'RECOVERED';
+    $('ldTag').textContent = 'THE HAUL  --  ' + res.depth + 'm DOWN';
+    const rows = $('ldRows'); rows.innerHTML = '';
+    const total = $('ldTotalRow'); total.classList.remove('in', 'lost');
+    $('ldTotal').textContent = '$0';
+    const lines = ledgerLines(haul, res);
+    if (!lines.length) {
+      const el = ledgerRow({ c:'#4f4a63', name:'nothing worth hauling', n:0, label:'$0' }, '');
+      rows.appendChild(el); requestAnimationFrame(() => el.classList.add('in'));
+    }
+    lines.forEach((ln, i) => {
+      const el = ledgerRow(ln, ln.cls);
+      rows.appendChild(el);
+      ldTimers.push(setTimeout(() => {
+        el.classList.add('in');
+        jolt($('ldCard'));
+        const b = el.getBoundingClientRect(), host = $('ldFx').getBoundingClientRect();
+        ldFx.burst(b.left - host.left + 14, b.top - host.top + b.height / 2, ln.c, ln.cls === 'loss' ? 26 : 16);
+      }, 300 + i * 320));
+    });
+    // the total lands hardest
+    ldTimers.push(setTimeout(() => {
+      total.classList.add('in');
+      if (res.molten) total.classList.add('lost');
+      $('ldTotal').textContent = '$' + res.kept.toLocaleString('en-US');
+      jolt($('ldCard'));
+      const b = total.getBoundingClientRect(), host = $('ldFx').getBoundingClientRect();
+      for (let k = 0; k < 3; k++)
+        ldFx.burst(b.left - host.left + b.width * (0.25 + k * 0.25), b.top - host.top + 10,
+                   res.molten ? '#e2564a' : '#f2b134', 30);
+    }, 300 + lines.length * 320 + 260));
+    show('ledger');
+  }
+  function skipLedger() {
+    clearLedger();
+    $('ldRows').querySelectorAll('.ldrow').forEach(r => r.classList.add('in'));
+    $('ldTotalRow').classList.add('in');
+  }
+  $('ldCard').addEventListener('pointerdown', e => {
+    if (e.target.id === 'ldGo') return;
+    const pending = ldTimers.length && !$('ldTotalRow').classList.contains('in');
+    if (pending) { e.preventDefault(); skipLedger(); }
+  });
+  $('ldGo').onclick = () => { clearLedger(); if (ldDone) ldDone(); };
+
+  // the host shows all four at once
+  function playHostLedger(entries, roundLabel) {
+    mlFx.clear();
+    $('mlRound').textContent = roundLabel;
+    const wrap = $('mlCols'); wrap.innerHTML = '';
+    entries.forEach((e, idx) => {
+      const col = document.createElement('div');
+      col.className = 'ldcol';
+      col.style.borderColor = e.colour;
+      const h = document.createElement('h3'); h.textContent = e.name; h.style.color = e.colour;
+      col.appendChild(h);
+      const lines = ledgerLines(e.haul, e.res);
+      lines.forEach((ln, i) => {
+        const el = ledgerRow(ln, ln.cls);
+        col.appendChild(el);
+        setTimeout(() => {
+          el.classList.add('in');
+          const b = el.getBoundingClientRect(), host = $('mlFx').getBoundingClientRect();
+          mlFx.burst(b.left - host.left + 12, b.top - host.top + b.height / 2, ln.c, 12);
+        }, 260 + i * 300);
+      });
+      const tot = document.createElement('div');
+      tot.className = 'ldtotal' + (e.res.molten ? ' lost' : '');
+      tot.innerHTML = '<span>BANKED</span><b>$' + e.res.kept.toLocaleString('en-US') + '</b>';
+      col.appendChild(tot);
+      setTimeout(() => {
+        tot.classList.add('in');
+        jolt(col);
+        const b = tot.getBoundingClientRect(), host = $('mlFx').getBoundingClientRect();
+        mlFx.burst(b.left - host.left + b.width / 2, b.top - host.top + 10,
+                   e.res.molten ? '#e2564a' : '#f2b134', 24);
+      }, 260 + lines.length * 300 + 240);
+      wrap.appendChild(col);
+    });
+    show('mledger');
+  }
+
   // ================= match runner (host) =================
   const RUN_SECONDS = 60, SHOP_SECONDS = 90;
   const hex = key => (COLORS.find(c => c.key === key) || COLORS[0]).hex;
@@ -2752,6 +3019,21 @@
     if (st.mode === 'goal') return activePlayers().some(pl => pl.game.bank >= st.goal);
     return false;                               // endless runs until the host says stop
   }
+  const LEDGER_SECONDS = 13;
+  function showLedgers() {
+    document.documentElement.classList.remove('hosting');
+    phase = 'ledger';
+    ledgerLeft = LEDGER_SECONDS;
+    const players = activePlayers();
+    players.forEach(pl => { pl.seenLedger = false; });
+    playHostLedger(players.map(pl => ({
+      name: pl.name, colour: hex(pl.color), haul: pl.result.haul, res: pl.result,
+    })), match.settings.mode === 'rounds' ? 'ROUND ' + round + ' / ' + match.settings.rounds
+                                          : 'ROUND ' + round);
+    NET.toAll({ t:'phase', phase:'ledger' });
+    players.forEach(pl => NET.to(pl.id, { t:'ledger', haul: pl.result.haul, res: pl.result }));
+  }
+
   function endRound() {
     document.documentElement.classList.remove('hosting');
     $('workshop').classList.remove('on');       // solo furniture stays shut in a match
@@ -2830,7 +3112,7 @@
   }
 
   // ---------- the frame ----------
-  let hudAccum = 0, clockAccum = 0;
+  let hudAccum = 0, clockAccum = 0, ledgerLeft = 0;
   function tick(now) {
     raf = requestAnimationFrame(tick);
     const dt = Math.min(0.05, (now - lastT) / 1000);
@@ -2841,7 +3123,7 @@
       players.forEach(pl => {
         if (pl.done) return;
         const ended = TM.step(pl.game, dt);
-        if (ended) { pl.done = true; NET.to(pl.id, { t:'ended', ...ended, bank: pl.game.bank }); }
+        if (ended) { pl.done = true; pl.result = ended; }
       });
       drawMatch(players);
       hudAccum += dt;
@@ -2861,7 +3143,10 @@
                           snap: TM.snapshot(pl.game, others, full) });
         });
       }
-      if (players.every(pl => pl.done)) endRound();
+      if (players.every(pl => pl.done)) showLedgers();
+    } else if (phase === 'ledger') {
+      ledgerLeft -= dt;
+      if (ledgerLeft <= 0 || activePlayers().every(pl => pl.seenLedger)) endRound();
     } else if (phase === 'shop') {
       shopLeft -= dt;
       renderShopBoard();
@@ -2939,6 +3224,10 @@
   NET.on('in',  (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.setKey(pl.game, m.dir, m.on); });
   NET.on('act', (m, from) => { const pl = match.players.find(x => x.id === from); if (pl && pl.game) TM.act(pl.game, m.a); });
   // a phone that spots a gap in the delta stream asks for the whole map again
+  NET.on('seen', (m, from) => {
+    const pl = match.players.find(x => x.id === from);
+    if (pl) pl.seenLedger = true;
+  });
   NET.on('resync', (m, from) => {
     const pl = match.players.find(x => x.id === from);
     if (pl) pl.needFull = true;
@@ -3034,6 +3323,8 @@
         setTimeout(fitControllerCanvas, 120);
         startControllerLoop();
       });
+    } else if (msg.phase === 'ledger') {
+      show('ledger');
     } else if (msg.phase === 'shop') {
       goalLine = msg.mode === 'goal' ? 'Race to $' + (msg.goal || 0).toLocaleString('en-US') + '.'
                : msg.mode === 'endless' ? 'Endless match -- the host calls it.'
@@ -3076,10 +3367,11 @@
     $('chRun').textContent = '$' + h.run;
     $('chCells').textContent = h.fuel + '/' + h.maxFuel;
     $('chFlash').textContent = h.flash || '';
+    TM.drawTrack($('chOre'), h.haul || []);
     TM.litTools(h.ping, h.implode);
   });
-  NET.on('ended', m => {
-    $('chFlash').textContent = m.molten ? 'RIG LOST -- half the haul gone' : 'SURFACED with $' + m.kept;
+  NET.on('ledger', m => {
+    playLedger(m.haul, m.res, () => { NET.send({ t:'seen' }); show('cshop'); });
   });
   let goalLine = '';
   NET.on('clock', m => { shopClock = m.left; $('csClock').textContent = Math.ceil(m.left); });
@@ -3119,6 +3411,11 @@
     $('csReady').disabled = true;
     $('csReady').textContent = 'WAITING FOR THE OTHERS';
   };
+
+  // solo runs stop at the ledger on the way to the bay
+  TM.onSoloEnd((haul, res) => {
+    playLedger(haul, res, () => { showGame(); TM.resumeSolo(); });
+  });
 
   const joinCode = new URLSearchParams(location.search).get('join');
   if (joinCode) showController(joinCode.toUpperCase().slice(0, 4));
