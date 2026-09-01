@@ -2041,32 +2041,58 @@
       m.log = m.log || []; m.plog = m.plog || []; m.poplog = m.poplog || [];
       m.fxlog = m.fxlog || [];
       if (full) { m.sent = 0; m.psent = 0; }
-      m.seq = (m.seq || 0) + 1;
-      const snap = {
-        seed: slot.seed,
-        seq: m.seq,
-        full: !!full,
-        cut: m.log.slice(m.sent || 0),
-        lit: m.plog.slice(m.psent || 0),
-        pop: m.poplog.slice(m.popsent || 0),      // never replayed on a resync
-        fx: m.fxlog.slice(m.fxsent || 0),
-        shake: +slot.shake.toFixed(2),
-        dmg: [...slot.dmg.entries()],
-        lvl: slot.lvl,
-        others: others || [],
-        p: slot.p ? { px:slot.p.px, py:slot.p.py, x:slot.p.x, y:slot.p.y, dir:slot.p.dir,
-                      face:slot.p.face, drilling:!!slot.p.drilling, molten:!!slot.p.molten,
-                      burn:slot.p.burn, depth:slot.p.depth } : null,
-      };
-      m.sent = m.log.length; m.psent = m.plog.length; m.popsent = m.poplog.length;
-      m.fxsent = m.fxlog.length;
+
+      // a full picture replays the whole dig log, so collapse repeat writes to
+      // the same tile first -- only the last value for a tile matters
+      let cut = m.log.slice(m.sent || 0);
+      if (full && cut.length > 64) {
+        const last = new Map();
+        for (const line of cut) last.set(line.slice(0, line.lastIndexOf(':')), line);
+        cut = [...last.values()];
+      }
+      const lit = m.plog.slice(m.psent || 0);
+      const pops = m.poplog.slice(m.popsent || 0);
+      const fxs = m.fxlog.slice(m.fxsent || 0);
+      // damage moves only while a drill is biting and levels only change in the
+      // workshop -- both used to ride along twelve times a second regardless
+      const dsig = slot.dmg.size ? [...slot.dmg.entries()].map(e => e[0] + '=' + e[1]).join(';') : '';
+      const lsig = JSON.stringify(slot.lvl);
+
+      const snap = { seed: slot.seed, seq: (m.seq || 0) + 1 };
+      if (full) snap.full = 1;
+      if (cut.length) snap.cut = cut;
+      if (lit.length) snap.lit = lit;
+      if (pops.length) snap.pop = pops;          // never replayed on a resync
+      if (fxs.length) snap.fx = fxs;
+      if (slot.shake > 0.05) snap.shake = +slot.shake.toFixed(2);
+      if (full || dsig !== m.dsig) snap.dmg = [...slot.dmg.entries()];
+      if (full || lsig !== m.lsig) snap.lvl = slot.lvl;
+      if (others && others.length) snap.others = others;
+      snap.p = slot.p ? { px:Math.round(slot.p.px), py:Math.round(slot.p.py),
+                          x:slot.p.x, y:slot.p.y, dir:slot.p.dir,
+                          face:slot.p.face, drilling:!!slot.p.drilling, molten:!!slot.p.molten,
+                          burn:slot.p.burn, depth:slot.p.depth } : null;
+
+      // nothing is marked as delivered until the send actually goes through --
+      // a dropped delta used to strand the phone until it noticed the gap
+      m.pend = { seq: snap.seq, sent: m.log.length, psent: m.plog.length,
+                 popsent: m.poplog.length, fxsent: m.fxlog.length, dsig, lsig };
       return snap;
+    },
+    commitSnapshot(slot) {
+      const m = slot.mp, q = m.pend;
+      if (!q) return;
+      m.seq = q.seq; m.sent = q.sent; m.psent = q.psent;
+      m.popsent = q.popsent; m.fxsent = q.fxsent;
+      m.dsig = q.dsig; m.lsig = q.lsig;
+      m.pend = null;
     },
     resetLog(slot, sharedLog) {
       slot.mp.log = sharedLog ? sharedLog.log : [];
       slot.mp.plog = sharedLog ? sharedLog.plog : [];
       slot.mp.poplog = []; slot.mp.fxlog = [];
       slot.mp.sent = 0; slot.mp.psent = 0; slot.mp.popsent = 0; slot.mp.fxsent = 0;
+      slot.mp.dsig = null; slot.mp.lsig = null; slot.mp.pend = null;
     },
     // returns false when a delta went missing, so the caller can ask for a resync
     applySnapshot(slot, snap) {
@@ -2097,13 +2123,13 @@
         saveSlot(slot);
       }
       if (typeof snap.shake === 'number') slot.shake = Math.max(slot.shake, snap.shake);
-      for (const line of snap.cut) {
+      for (const line of (snap.cut || [])) {
         const i = line.lastIndexOf(':');
         slot.world.set(line.slice(0, i), +line.slice(i + 1));
       }
-      for (const k of snap.lit) slot.pinged.add(k);
-      slot.dmg = new Map(snap.dmg);
-      Object.assign(slot.lvl, snap.lvl);
+      for (const k of (snap.lit || [])) slot.pinged.add(k);
+      if (snap.dmg) slot.dmg = new Map(snap.dmg);
+      if (snap.lvl) Object.assign(slot.lvl, snap.lvl);
       if (snap.p) {
         const prev = slot.p;
         slot.p = Object.assign({
@@ -2569,7 +2595,17 @@
       this.peer.on('error', err => cb(err));
     },
     toAll(msg) { this.conns.forEach(c => { try { c.send(msg); } catch (e) {} }); },
-    to(id, msg) { const c = this.conns.get(id); if (c) { try { c.send(msg); } catch (e) {} } },
+    to(id, msg) {
+      const c = this.conns.get(id);
+      if (!c) return false;
+      try { c.send(msg); return true; } catch (e) { return false; }
+    },
+    // how many bytes are still queued for this player -- the channel is ordered,
+    // so once this climbs every later byte waits behind it and the mine judders
+    backlog(id) {
+      const c = this.conns.get(id);
+      try { return (c && c.dataChannel && c.dataChannel.bufferedAmount) || 0; } catch (e) { return 0; }
+    },
     send(msg) { if (this.host) { try { this.host.send(msg); } catch (e) {} } },
   };
 
@@ -3131,16 +3167,19 @@
         hudAccum = 0;
         const shared = match.settings.screen === 'shared';
         players.forEach(pl => {
+          // never pile onto a link that is already behind -- shedding a frame
+          // costs nothing, because nothing counts as sent until it is sent
+          if (NET.backlog(pl.id) > 48 * 1024) return;
           const others = shared ? players.filter(o => o !== pl && o.game.p).map(o => ({
-            px:o.game.p.px, py:o.game.p.py, dir:o.game.p.dir, face:o.game.p.face, color:hex(o.color)
+            i:o.slot, px:Math.round(o.game.p.px), py:Math.round(o.game.p.py),
+            dir:o.game.p.dir, face:o.game.p.face, color:hex(o.color)
           })) : [];
-          // a full picture every couple of seconds, so a phone can never be
-          // stranded on a delta it missed
-          pl.fullAt = (pl.fullAt || 0) + 1;
-          const full = pl.needFull || pl.fullAt % 25 === 0;
-          pl.needFull = false;
-          NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game),
-                          snap: TM.snapshot(pl.game, others, full) });
+          // the whole map goes out only when a phone asks for it, not on a timer
+          const snap = TM.snapshot(pl.game, others, !!pl.needFull);
+          if (NET.to(pl.id, { t:'view', hud: TM.hudFor(pl.game), snap })) {
+            TM.commitSnapshot(pl.game);
+            pl.needFull = false;
+          }
         });
       }
       if (players.every(pl => pl.done)) showLedgers();
@@ -3257,6 +3296,32 @@
   let mirror = null, camSmooth = null, myRaf = 0, viewClock = 0, shopClock = 0, ghosts = [];
   let lastFrame = 0;
 
+  // the other rigs report twelve times a second; slide them between reports so
+  // they walk instead of teleporting
+  const ghostState = new Map();
+  function updateGhosts(list) {
+    const seen = new Set();
+    for (const g of (list || [])) {
+      seen.add(g.i);
+      let q = ghostState.get(g.i);
+      if (!q) { q = { dx:g.px, dy:g.py }; ghostState.set(g.i, q); }
+      q.px = g.px; q.py = g.py; q.dir = g.dir; q.face = g.face; q.color = g.color;
+    }
+    ghostState.forEach((q, k) => { if (!seen.has(k)) ghostState.delete(k); });
+  }
+  function ageGhosts(dt) {
+    if (!ghostState.size) { if (ghosts.length) ghosts = []; return; }
+    const k = Math.min(1, dt * 14);
+    const out = [];
+    ghostState.forEach(q => {
+      // a long jump is a teleport, not a walk
+      if (Math.abs(q.px - q.dx) > 40 || Math.abs(q.py - q.dy) > 40) { q.dx = q.px; q.dy = q.py; }
+      else { q.dx += (q.px - q.dx) * k; q.dy += (q.py - q.dy) * k; }
+      out.push({ px:q.dx, py:q.dy, dir:q.dir, face:q.face, color:q.color });
+    });
+    ghosts = out;
+  }
+
   addEventListener('resize', () => { if ($('cplay').classList.contains('on')) fitControllerCanvas(); });
   function fitControllerCanvas() {
     const host = $('cViewHost');
@@ -3281,6 +3346,7 @@
       }
       if (!mirror || !mirror.p) return;
       TM.lerpRig(mirror, dt);
+      ageGhosts(dt);
       TM.agePops(mirror, dt);          // payouts and chips live on the phone now
       const cv = TM.canvasEl();
       const view = { x:0, y:0, w:cv.width, h:cv.height };
@@ -3316,7 +3382,7 @@
       TM.setHooks((dir, on) => NET.send({ t:'in', dir, on }), a => NET.send({ t:'act', a }));
       TM.matchMode(true);
       if (!mirror) mirror = TM.makeSlot();
-      camSmooth = null; ghosts = [];
+      camSmooth = null; ghosts = []; ghostState.clear();
       requestAnimationFrame(() => {
         fitControllerCanvas();
         // one more pass after layout settles, then on every orientation change
@@ -3356,7 +3422,7 @@
       const now = performance.now();
       if (now - resyncAsked > 600) { resyncAsked = now; NET.send({ t:'resync' }); }
     }
-    ghosts = m.snap.others || [];
+    updateGhosts(m.snap.others);
     NET.fire('hud', { t:'hud', hud: m.hud });
   });
   NET.on('hud', m => {
